@@ -2,8 +2,8 @@
   {
     "id": 1,
     "name": "2048",
-    "icon": "https://github.com/3kh0/3kh0-lite/blob/main/projects/2048/favicon.ico",
-    "popularity": [""],
+    "icon": "https://play-lh.googleusercontent.com/5JrXBphEEsLGqTbdEUKzmfjT2QWuQOI_CwU7r6G53SBNRrSRj1VFL4CY6Ue19z9irYQr",
+    "popularity": ["Hot"],
     "categories": ["classic", "puzzle"],
     "gameLink": "https://lite.3kh0.net/projects/2048/"
   }
