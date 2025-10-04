@@ -3,7 +3,7 @@
     "id": 1,
     "name": "2048",
     "icon": "https://play-lh.googleusercontent.com/5JrXBphEEsLGqTbdEUKzmfjT2QWuQOI_CwU7r6G53SBNRrSRj1VFL4CY6Ue19z9irYQr",
-    "popularity": ["Hot"],
+    "popularity": ["hot"],
     "categories": ["classic", "puzzle"],
     "gameLink": "https://lite.3kh0.net/projects/2048/"
   }
