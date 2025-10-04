@@ -3,6 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Search, Gamepad2, Flame, TrendingUp, Sparkles, Star } from "lucide-react";
 
 const games = [
@@ -57,11 +58,14 @@ const getBadgeConfig = (popularity: string) => {
 
 const Games = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
-  const filteredGames = games.filter((game) =>
-    game.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    game.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredGames = games.filter((game) => {
+    const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = !activeFilter || game.popularity === activeFilter;
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,10 +86,58 @@ const Games = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input 
               placeholder="Search games..." 
-              className="pl-10 bg-card border-border focus:border-primary transition-colors"
+              className="pl-10 bg-card border-border transition-colors"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeFilter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter(null)}
+              className="transition-colors"
+            >
+              All
+            </Button>
+            <Button
+              variant={activeFilter === "hot" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("hot")}
+              className="transition-colors"
+            >
+              <Flame className="w-4 h-4 mr-1" />
+              Hot
+            </Button>
+            <Button
+              variant={activeFilter === "popular" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("popular")}
+              className="transition-colors"
+            >
+              <Star className="w-4 h-4 mr-1" />
+              Popular
+            </Button>
+            <Button
+              variant={activeFilter === "trending" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("trending")}
+              className="transition-colors"
+            >
+              <TrendingUp className="w-4 h-4 mr-1" />
+              Trending
+            </Button>
+            <Button
+              variant={activeFilter === "new" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("new")}
+              className="transition-colors"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              New
+            </Button>
           </div>
         </div>
 
@@ -94,7 +146,7 @@ const Games = () => {
           {filteredGames.map((game, index) => (
             <Card
               key={game.id}
-              className="group p-4 bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-glow cursor-pointer animate-fade-in relative"
+              className="group p-4 bg-card border-border hover:border-primary/20 transition-all duration-300 cursor-pointer animate-fade-in relative"
               style={{ animationDelay: `${index * 30}ms` }}
             >
               {/* Popularity Badge */}
@@ -104,7 +156,7 @@ const Games = () => {
                 return (
                   <Badge 
                     variant={config.variant}
-                    className={`absolute top-2 right-2 text-xs uppercase z-10 flex items-center gap-1 ${config.className}`}
+                    className={`absolute top-2 right-2 text-xs uppercase z-10 flex items-center gap-1 pointer-events-none ${config.className}`}
                   >
                     <BadgeIcon className="w-3 h-3" />
                     {game.popularity}
@@ -113,12 +165,12 @@ const Games = () => {
               })()}
 
               {/* Game Icon Placeholder */}
-              <div className="aspect-square mb-3 rounded-lg bg-secondary/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                <Gamepad2 className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="aspect-square mb-3 rounded-lg bg-secondary/50 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+                <Gamepad2 className="w-8 h-8 text-muted-foreground group-hover:text-primary/70 transition-colors" />
               </div>
 
               {/* Game Info */}
-              <h3 className="text-sm font-semibold mb-1 group-hover:text-primary transition-colors truncate">
+              <h3 className="text-sm font-semibold mb-1 group-hover:text-primary/80 transition-colors truncate">
                 {game.name}
               </h3>
               <p className="text-xs text-muted-foreground truncate">{game.category}</p>
