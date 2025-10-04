@@ -1,18 +1,17 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, Flame, Star, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, TrendingUp, Flame, Star, Sparkles, Filter, Maximize } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
 import gamesData from "@/data/games.json";
 
 type Game = {
@@ -42,14 +41,34 @@ const getBadgeConfig = (popularity: string) => {
 };
 
 const Games = () => {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const gameParam = searchParams.get("game");
   const [searchQuery, setSearchQuery] = useState("");
   const [popularityFilter, setPopularityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [currentGame, setCurrentGame] = useState<Game | null>(null);
+
+  useEffect(() => {
+    if (gameParam) {
+      const foundGame = games.find(
+        (g) => g.name.toLowerCase().replace(/\s+/g, '-') === gameParam
+      );
+      setCurrentGame(foundGame || null);
+    } else {
+      setCurrentGame(null);
+    }
+  }, [gameParam]);
 
   const handleGameClick = (gameName: string) => {
     const gameSlug = gameName.toLowerCase().replace(/\s+/g, '-');
-    navigate(`/games?game=${gameSlug}`);
+    setSearchParams({ game: gameSlug });
+  };
+
+  const handleFullscreen = () => {
+    const iframe = document.getElementById("game-iframe") as HTMLIFrameElement;
+    if (iframe?.requestFullscreen) {
+      iframe.requestFullscreen();
+    }
   };
 
   const filteredGames = games.filter((game) => {
@@ -60,6 +79,51 @@ const Games = () => {
   });
 
   const allCategories = Array.from(new Set(games.flatMap(game => game.categories)));
+
+  // If a game is selected, show the game player
+  if (currentGame) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
+          <div className="space-y-6">
+            <Button
+              variant="outline"
+              onClick={() => setSearchParams({})}
+              className="mb-4"
+            >
+              ← Back to Games
+            </Button>
+            
+            <h1 className="text-4xl font-bold text-foreground">{currentGame.name}</h1>
+            
+            <div className="w-full aspect-video bg-card rounded-lg overflow-hidden border border-border">
+              <iframe
+                id="game-iframe"
+                src={currentGame.gameLink}
+                className="w-full h-full"
+                title={currentGame.name}
+                allowFullScreen
+              />
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleFullscreen}
+                className="gap-2"
+                size="lg"
+              >
+                <Maximize className="w-5 h-5" />
+                Fullscreen
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show games listing
 
   return (
     <div className="min-h-screen bg-background">
