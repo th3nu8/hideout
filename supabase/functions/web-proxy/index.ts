@@ -22,22 +22,12 @@ serve(async (req) => {
 
     console.log('Proxying request to:', url);
 
-    // Enhanced headers to mimic a real browser
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Upgrade-Insecure-Requests': '1'
       },
       redirect: 'follow'
     });
@@ -46,38 +36,37 @@ serve(async (req) => {
       console.error('Fetch failed:', response.status, response.statusText);
       return new Response(
         JSON.stringify({ 
-          error: `Failed to fetch: ${response.status} ${response.statusText}`,
-          url: url 
+          error: `Failed to load page: ${response.status}`,
+          success: false 
         }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const contentType = response.headers.get('content-type') || '';
     let content = await response.text();
 
-    // Enhanced HTML processing
     if (contentType.includes('text/html')) {
       const baseUrl = new URL(url).origin;
-      
-      // Inject base tag and remove blocking headers
       content = content
         .replace(/<head>/i, `<head><base href="${baseUrl}/">`)
         .replace(/<meta[^>]*http-equiv=["']?X-Frame-Options["']?[^>]*>/gi, '')
-        .replace(/<meta[^>]*content=["']?frame-ancestors[^>]*>/gi, '')
-        // Remove CSP that blocks iframes
         .replace(/<meta[^>]*http-equiv=["']?Content-Security-Policy["']?[^>]*>/gi, '');
     }
 
-    return new Response(content, {
-      status: response.status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': contentType,
-        'X-Frame-Options': 'ALLOWALL',
-        'Content-Security-Policy': 'frame-ancestors *'
+    return new Response(
+      JSON.stringify({ 
+        html: content,
+        success: true 
+      }),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
       }
-    });
+    );
 
   } catch (error) {
     console.error('Proxy error:', error);

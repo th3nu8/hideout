@@ -73,11 +73,21 @@ const Browser = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('Loading URL:', url);
       const { data, error } = await supabase.functions.invoke('web-proxy', {
         body: { url }
       });
 
-      if (error) throw error;
+      console.log('Proxy response:', data);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load page');
+      }
 
       // Update tab with new URL and history
       setTabs(prev => prev.map(tab => {
@@ -103,18 +113,19 @@ const Browser = () => {
       }, ...prev.slice(0, 99)]);
 
       // Render content in iframe
-      if (iframeRef.current) {
+      if (iframeRef.current && data.html) {
         const doc = iframeRef.current.contentDocument;
         if (doc) {
           doc.open();
-          doc.write(data);
+          doc.write(data.html);
           doc.close();
+          console.log('Content loaded successfully');
         }
       }
 
     } catch (error) {
       console.error('Error loading page:', error);
-      const errorMsg = "Unable to load this page. Some sites block browser embedding for security.";
+      const errorMsg = error instanceof Error ? error.message : "Unable to load this page. Some sites block browser embedding.";
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
