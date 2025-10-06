@@ -47,10 +47,10 @@ export const ChangeUsernameDialog = ({ open, onOpenChange, userId, currentUserna
     try {
       // Check if username is already taken
       const { data: existingUser } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('username', newUsername)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         toast({
@@ -62,7 +62,7 @@ export const ChangeUsernameDialog = ({ open, onOpenChange, userId, currentUserna
       }
 
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ username: newUsername })
         .eq('id', userId);
 

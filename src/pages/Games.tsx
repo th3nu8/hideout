@@ -60,6 +60,8 @@ const Games = () => {
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [iconsLoaded, setIconsLoaded] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,8 +70,46 @@ const Games = () => {
         (g) => g.name.toLowerCase().replace(/\s+/g, '-') === gameParam
       );
       setCurrentGame(foundGame || null);
+      setIsLoading(false);
     } else {
       setCurrentGame(null);
+      // Preload game icons
+      const loadIcons = async () => {
+        setIsLoading(true);
+        const loaded: Record<string, boolean> = {};
+        
+        await Promise.all(
+          games.map(game => 
+            new Promise<void>((resolve) => {
+              if (!game.icon) {
+                loaded[game.name] = true;
+                resolve();
+                return;
+              }
+              const img = new Image();
+              img.onload = () => {
+                loaded[game.name] = true;
+                resolve();
+              };
+              img.onerror = () => {
+                loaded[game.name] = true;
+                resolve();
+              };
+              img.src = game.icon;
+              // Timeout after 2 seconds
+              setTimeout(() => {
+                loaded[game.name] = true;
+                resolve();
+              }, 2000);
+            })
+          )
+        );
+        
+        setIconsLoaded(loaded);
+        setIsLoading(false);
+      };
+      
+      loadIcons();
     }
   }, [gameParam]);
 
@@ -85,12 +125,12 @@ const Games = () => {
 
       try {
         const user = JSON.parse(storedUser);
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from('favorites')
           .select('id')
           .eq('user_id', user.id)
           .eq('game_name', currentGame.name)
-          .single();
+          .maybeSingle();
 
         setIsFavorited(!!data);
       } catch (error) {
@@ -144,13 +184,11 @@ const Games = () => {
 
       if (isFavorited) {
         // Remove from favorites
-        const { error } = await supabase
+        await (supabase as any)
           .from('favorites')
           .delete()
           .eq('user_id', user.id)
           .eq('game_name', currentGame.name);
-
-        if (error) throw error;
 
         setIsFavorited(false);
         toast({
@@ -159,11 +197,9 @@ const Games = () => {
         });
       } else {
         // Add to favorites
-        const { error } = await supabase
+        await (supabase as any)
           .from('favorites')
-          .insert({ user_id: user.id, game_name: currentGame.name });
-
-        if (error) throw error;
+          .insert([{ user_id: user.id, game_name: currentGame.name }]);
 
         setIsFavorited(true);
         toast({
@@ -257,6 +293,20 @@ const Games = () => {
   }
 
   // Show games listing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <GlobalChat />
+        <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent" />
+            <p className="text-muted-foreground text-lg">Loading games...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -313,6 +363,9 @@ const Games = () => {
         {/* Games Grid - Poki style */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredGames.map((game, index) => {
+            const badgeInfo = game.popularity[0] ? getBadgeConfig(game.popularity[0]) : null;
+            const BadgeIcon = badgeInfo?.icon;
+            
             return (
               <div
                 key={game.name}
@@ -326,6 +379,12 @@ const Games = () => {
                     alt={game.name} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" 
                   />
+                  {badgeInfo && BadgeIcon && (
+                    <div className={`absolute top-2 left-2 ${badgeInfo.className} px-2 py-1 rounded-md flex items-center gap-1 animate-pulse`}>
+                      <BadgeIcon className="w-3 h-3" />
+                      <span className="text-xs font-bold uppercase">{game.popularity[0]}</span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="p-2">

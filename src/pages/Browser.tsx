@@ -311,7 +311,7 @@ const Browser = () => {
   };
 
   const addTab = () => {
-    if (tabs.length >= 10) {
+    if (tabs.length >= 5) {
       setShowMaxTabsDialog(true);
       return;
     }
@@ -347,8 +347,8 @@ const Browser = () => {
 
   const duplicateTab = (tabId: number) => {
     const tab = tabs.find(t => t.id === tabId);
-    if (!tab || tabs.length >= 10) {
-      if (tabs.length >= 10) setShowMaxTabsDialog(true);
+    if (!tab || tabs.length >= 5) {
+      if (tabs.length >= 5) setShowMaxTabsDialog(true);
       return;
     }
     const newTab: Tab = {
@@ -624,9 +624,20 @@ const Browser = () => {
           )
         ) : (
           <div className="flex items-center justify-center h-full animate-fade-in">
-            <div className="text-center space-y-6 max-w-md">
+            <div className="text-center space-y-6 max-w-md px-4">
               <h2 className="text-3xl font-semibold">New Tab</h2>
               <p className="text-muted-foreground">Search {engine.charAt(0).toUpperCase() + engine.slice(1)} or enter a URL to browse the web</p>
+              <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+                <p className="text-sm text-foreground">
+                  Need help? Visit{" "}
+                  <button
+                    onClick={() => handleHelpClick()}
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    hideout://help
+                  </button>
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -637,7 +648,7 @@ const Browser = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Maximum Tabs Reached</AlertDialogTitle>
             <AlertDialogDescription>
-              You've reached the maximum of 10 tabs. Close some tabs to save data and improve performance, or continue browsing with your current tabs.
+              You've reached the maximum of 5 tabs. Close some tabs to save data and improve performance, or continue browsing with your current tabs.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

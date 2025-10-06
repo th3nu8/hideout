@@ -105,14 +105,19 @@ export const GlobalChat = () => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim()) return;
+    
+    if (!user) {
+      toast.error("Please login to send messages");
+      return;
+    }
 
     const { error } = await supabase
       .from('global_chat')
-      .insert({
+      .insert([{
         user_id: user.id,
         message: newMessage.trim()
-      });
+      }]);
 
     if (error) {
       toast.error("Failed to send message");
@@ -139,13 +144,7 @@ export const GlobalChat = () => {
     <>
       {/* Chat Button */}
       <Button
-        onClick={() => {
-          if (!user) {
-            toast.error("Please login to use global chat");
-            return;
-          }
-          setIsOpen(true);
-        }}
+        onClick={() => setIsOpen(true)}
         className="fixed bottom-6 left-6 z-[9999] w-14 h-14 rounded-full shadow-lg hover:scale-110 transition-transform"
         size="icon"
       >
@@ -200,18 +199,26 @@ export const GlobalChat = () => {
 
           {/* Input */}
           <form onSubmit={sendMessage} className="p-4 border-t border-border bg-card/95 backdrop-blur">
-            <div className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                maxLength={500}
-                className="flex-1"
-              />
-              <Button type="submit" size="icon">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
+            {!user ? (
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <a href="/auth" className="text-primary hover:underline">Login</a> to send messages
+                </p>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  maxLength={500}
+                  className="flex-1"
+                />
+                <Button type="submit" size="icon">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </form>
         </div>
       )}

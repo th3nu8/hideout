@@ -53,7 +53,7 @@ const Account = () => {
 
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .delete()
         .eq('id', user.id);
 

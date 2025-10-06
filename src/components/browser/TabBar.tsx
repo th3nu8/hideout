@@ -37,7 +37,7 @@ export const TabBar = ({
   onCloseToRight,
   onPinTab,
 }: TabBarProps) => {
-  const maxTabs = 10;
+  const maxTabs = 5;
   const canAddTab = tabs.length < maxTabs;
   
   const getTabWidth = () => {
@@ -77,7 +77,7 @@ export const TabBar = ({
                   } 
                 })()}
                 {!tab.pinned && <span className="flex-1 truncate text-sm">{tab.title}</span>}
-                {tabs.length > 1 && !tab.pinned && (
+                {!tab.pinned && (
                   <Button
                     variant="ghost"
                     size="icon"
