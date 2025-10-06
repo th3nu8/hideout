@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, Flame, Star, Sparkles, Filter, Maximize } from "lucide-react";
+import { Search, TrendingUp, Flame, Heart, Sparkles, Filter, Maximize } from "lucide-react";
 import { RequestGameDialog } from "@/components/RequestGameDialog";
 import { GlobalChat } from "@/components/GlobalChat";
 import {
@@ -14,15 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import gamesData from "@/data/games.json";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +39,7 @@ const getBadgeConfig = (popularity: string) => {
     case "new":
       return { variant: "default" as const, icon: Sparkles, className: "bg-purple-500/20 text-purple-400 border-purple-500/30" };
     default:
-      return { variant: "secondary" as const, icon: Star, className: "" };
+      return { variant: "secondary" as const, icon: Heart, className: "" };
   }
 };
 
@@ -58,10 +49,10 @@ const Games = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [iconsLoaded, setIconsLoaded] = useState<Record<string, boolean>>({});
+  const [favorites, setFavorites] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,6 +105,32 @@ const Games = () => {
   }, [gameParam]);
 
   useEffect(() => {
+    const loadFavorites = async () => {
+      const storedUser = localStorage.getItem('hideout_user') || sessionStorage.getItem('hideout_user');
+      if (!storedUser) {
+        setFavorites([]);
+        return;
+      }
+
+      try {
+        const user = JSON.parse(storedUser);
+        const { data } = await (supabase as any)
+          .from('favorites')
+          .select('game_name')
+          .eq('user_id', user.id);
+
+        if (data) {
+          setFavorites(data.map((f: any) => f.game_name));
+        }
+      } catch (error) {
+        setFavorites([]);
+      }
+    };
+
+    loadFavorites();
+  }, []);
+
+  useEffect(() => {
     const checkFavorite = async () => {
       if (!currentGame) return;
 
@@ -160,6 +177,12 @@ const Games = () => {
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
+      const aIsFavorite = favorites.includes(a.name);
+      const bIsFavorite = favorites.includes(b.name);
+      
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
+      
       const aIsHotOrPopular = a.popularity.includes("hot") || a.popularity.includes("popular");
       const bIsHotOrPopular = b.popularity.includes("hot") || b.popularity.includes("popular");
       if (aIsHotOrPopular && !bIsHotOrPopular) return -1;
@@ -169,57 +192,50 @@ const Games = () => {
 
   const allCategories = Array.from(new Set(games.flatMap(game => game.categories)));
 
-  const handleFavorite = async () => {
+  const handleFavorite = async (gameName?: string) => {
+    const targetGame = gameName || currentGame?.name;
+    if (!targetGame) return;
+
+    const isFav = favorites.includes(targetGame);
+    let newFavorites: string[];
+
+    if (isFav) {
+      newFavorites = favorites.filter(f => f !== targetGame);
+    } else {
+      newFavorites = [...favorites, targetGame];
+    }
+
+    // Always update localStorage
+    setFavorites(newFavorites);
+    localStorage.setItem('hideout_favorites', JSON.stringify(newFavorites));
+    if (currentGame?.name === targetGame) setIsFavorited(!isFav);
+
+    // If user is logged in, also update database
     const storedUser = localStorage.getItem('hideout_user') || sessionStorage.getItem('hideout_user');
-    
-    if (!storedUser) {
-      setShowLoginPrompt(true);
-      return;
-    }
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
 
-    if (!currentGame) return;
-
-    try {
-      const user = JSON.parse(storedUser);
-
-      if (isFavorited) {
-        // Remove from favorites
-        await (supabase as any)
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('game_name', currentGame.name);
-
-        setIsFavorited(false);
-        toast({
-          title: "Removed from Favorites",
-          description: `${currentGame.name} has been removed from your favorites`,
-        });
-      } else {
-        // Add to favorites
-        await (supabase as any)
-          .from('favorites')
-          .insert([{ user_id: user.id, game_name: currentGame.name }]);
-
-        setIsFavorited(true);
-        toast({
-          title: "Added to Favorites",
-          description: `${currentGame.name} has been added to your favorites`,
-        });
+        if (isFav) {
+          await (supabase as any)
+            .from('favorites')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('game_name', targetGame);
+        } else {
+          await (supabase as any)
+            .from('favorites')
+            .insert([{ user_id: user.id, game_name: targetGame }]);
+        }
+      } catch (error) {
+        console.error('Error syncing favorites to database:', error);
       }
-    } catch (error) {
-      console.error('Error managing favorite:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update favorites",
-        variant: "destructive",
-      });
     }
-  };
 
-  const handleLoginRedirect = () => {
-    setShowLoginPrompt(false);
-    window.location.href = "/auth";
+    toast({
+      title: isFav ? "Removed from Favorites" : "Added to Favorites",
+      description: `${targetGame} has been ${isFav ? 'removed from' : 'added to'} your favorites`,
+    });
   };
 
   // If a game is selected, show the game player
@@ -258,34 +274,19 @@ const Games = () => {
                 Fullscreen
               </Button>
               <Button
-                onClick={handleFavorite}
+                onClick={() => handleFavorite()}
                 className={`gap-2 transition-all duration-300 ${
                   isFavorited 
-                    ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black shadow-lg shadow-yellow-500/50 scale-105' 
-                    : 'bg-gradient-to-r from-yellow-500/80 to-yellow-600/80 hover:from-yellow-500 hover:to-yellow-600 text-black hover:shadow-lg hover:shadow-yellow-500/30 hover:scale-105'
+                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/50 scale-105' 
+                    : 'bg-red-500/80 hover:bg-red-600 text-white hover:shadow-lg hover:shadow-red-500/30 hover:scale-105'
                 }`}
               >
-                <Star className={`w-4 h-4 transition-all duration-300 ${isFavorited ? 'fill-current animate-pulse' : ''}`} />
+                <Heart className={`w-4 h-4 transition-all duration-300 ${isFavorited ? 'fill-current animate-pulse' : ''}`} />
                 {isFavorited ? 'Favorited' : 'Favorite'}
               </Button>
             </div>
 
-            {/* Login Prompt Dialog */}
-            <AlertDialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-              <AlertDialogContent className="bg-card border-border">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Account Required</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You need to create an account or login to use the favorites feature.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogAction onClick={handleLoginRedirect}>
-                    Go to Login
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* Login Prompt Dialog - Removed since favorites work without login now */}
           </div>
         </main>
       </div>
@@ -365,15 +366,18 @@ const Games = () => {
           {filteredGames.map((game, index) => {
             const badgeInfo = game.popularity[0] ? getBadgeConfig(game.popularity[0]) : null;
             const BadgeIcon = badgeInfo?.icon;
+            const isFav = favorites.includes(game.name);
             
             return (
               <div
                 key={game.name}
-                onClick={() => handleGameClick(game.name)}
                 className="group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all duration-200 cursor-pointer animate-fade-in"
                 style={{ animationDelay: `${index * 20}ms` }}
               >
-                <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
+                <div 
+                  onClick={() => handleGameClick(game.name)}
+                  className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted"
+                >
                   <img 
                     src={game.icon} 
                     alt={game.name} 
@@ -384,8 +388,22 @@ const Games = () => {
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  {/* Heart Icon */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFavorite(game.name);
+                    }}
+                    className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10"
+                  >
+                    <Heart className={`w-4 h-4 transition-all ${isFav ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                  </button>
                 </div>
-                <div className="p-2">
+                <div 
+                  onClick={() => handleGameClick(game.name)}
+                  className="p-2"
+                >
                   <h3 className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
                     {game.name}
                   </h3>

@@ -116,11 +116,15 @@ const Apps = () => {
               className="group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all duration-200 cursor-pointer animate-fade-in"
               style={{ animationDelay: `${index * 20}ms` }}
             >
-              <div className="aspect-square relative overflow-hidden">
+              <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
                 <img 
                   src={app.icon} 
                   alt={app.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" 
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
