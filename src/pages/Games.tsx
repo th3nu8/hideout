@@ -5,7 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, Flame, Star, Sparkles, Filter, Maximize, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, Flame, Star, Sparkles, Filter, Maximize } from "lucide-react";
+import { RequestGameDialog } from "@/components/RequestGameDialog";
+import { GlobalChat } from "@/components/GlobalChat";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -259,18 +261,24 @@ const Games = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      <GlobalChat />
 
       <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto">
         {/* Header */}
         <div className="space-y-6 mb-12 animate-fade-in">
-          <h1 className="text-4xl font-bold text-foreground">Games</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            Discover and play amazing games right in your browser. No downloads required.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Games</h1>
+              <p className="text-muted-foreground text-lg">
+                Discover and play amazing games
+              </p>
+            </div>
+            <RequestGameDialog />
+          </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-3 max-w-2xl">
-            <div className="relative flex-1">
+          <div className="flex gap-3">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
                 placeholder="Search games..." 
@@ -285,7 +293,7 @@ const Games = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 bg-card border-border">
                   <Filter className="w-4 h-4" />
-                  {categoryFilter === "all" ? "Category" : categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
+                  {categoryFilter === "all" ? "All" : categoryFilter}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-card border-border z-50">
@@ -294,7 +302,7 @@ const Games = () => {
                 </DropdownMenuItem>
                 {allCategories.map((category) => (
                   <DropdownMenuItem key={category} onClick={() => setCategoryFilter(category)}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    {category}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -302,44 +310,35 @@ const Games = () => {
           </div>
         </div>
 
-        {/* Games Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Games Grid - Poki style */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredGames.map((game, index) => {
             return (
-              <Card
+              <div
                 key={game.name}
                 onClick={() => handleGameClick(game.name)}
-                className="group p-6 bg-gradient-to-br from-card to-card/50 border-border hover:border-border/80 hover:scale-105 transition-all duration-300 cursor-pointer animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all duration-200 cursor-pointer animate-fade-in"
+                style={{ animationDelay: `${index * 20}ms` }}
               >
-                <div className="flex flex-col gap-4">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden">
-                    <img src={game.icon} alt={game.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary/90 transition-colors">
-                      {game.name}
-                    </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {game.popularity.slice(0, 2).map((pop) => {
-                        const config = getBadgeConfig(pop);
-                        const BadgeIcon = config.icon;
-                        return (
-                          <Badge key={pop} variant={config.variant} className={`text-xs ${config.className}`}>
-                            <BadgeIcon className="w-3 h-3 mr-1" />
-                            {pop}
-                          </Badge>
-                        );
-                      })}
-                      {game.categories.slice(0, 2).map((cat) => (
-                        <Badge key={cat} variant="secondary" className="text-xs">
-                          {cat}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                <div className="aspect-square relative overflow-hidden">
+                  <img 
+                    src={game.icon} 
+                    alt={game.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-              </Card>
+                <div className="p-2">
+                  <h3 className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
+                    {game.name}
+                  </h3>
+                  {game.categories[0] && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {game.categories[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

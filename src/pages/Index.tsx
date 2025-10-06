@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Search, MessageCircle, Mail, FileText, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { ReportBugDialog } from "@/components/ReportBugDialog";
+import { GlobalChat } from "@/components/GlobalChat";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background relative">
       <Navigation />
+      <GlobalChat />
 
       {/* Main Content */}
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -32,6 +35,7 @@ const Index = () => {
               <span className="text-foreground">Hideout</span>
               <span className="text-primary">.</span>
             </h1>
+            <p className="text-lg text-muted-foreground mt-2">V0.9 Prebeta</p>
           </div>
 
           {/* Search Bar with Button Inside */}
@@ -50,6 +54,11 @@ const Index = () => {
               Search
             </button>
           </form>
+          
+          {/* Report Bug Button */}
+          <div className="flex justify-center">
+            <ReportBugDialog />
+          </div>
 
           {/* Footer */}
           <footer className="mt-24 text-center space-y-4 text-sm text-muted-foreground">
