@@ -204,19 +204,20 @@ const Apps = () => {
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    {/* Heart Icon - Bottom Right */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleFavorite(app.name);
+                      }}
+                      className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10"
+                    >
+                      <Heart className={`w-4 h-4 transition-all ${isFav ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                    </button>
                   </div>
                 </a>
-                
-                {/* Heart Icon */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFavorite(app.name);
-                  }}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10"
-                >
-                  <Heart className={`w-4 h-4 transition-all ${isFav ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                </button>
                 
                 <a
                   href={app.link}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { GlobalChat } from "@/components/GlobalChat";
 import { Card } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Bell, Palette, Database, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Palette, Database, Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -312,6 +312,21 @@ const Settings = () => {
               </div>
             )}
           </Card>
+
+          {/* Email Settings Link */}
+          <Link to="/email-settings">
+            <Card className="p-4 sm:p-6 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-primary" />
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-semibold">Email Settings</h2>
+                    <p className="text-sm text-muted-foreground">Manage newsletter and email preferences</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </Link>
 
           {/* Save Button */}
           <div className="flex flex-col sm:flex-row justify-end gap-3">
