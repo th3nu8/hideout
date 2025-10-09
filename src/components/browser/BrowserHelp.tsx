@@ -113,7 +113,7 @@ export const BrowserHelp = () => {
             <h2 className="text-2xl font-bold">Privacy & Security</h2>
           </div>
           <div className="space-y-3 text-muted-foreground">
-            <p><strong className="text-foreground">Proxy Protection:</strong> All web traffic goes through our secure proxy servers, hiding your real IP address and location.</p>
+            <p><strong className="text-foreground">Pr0xy Protection:</strong> All web traffic goes through our secure pr0xy servers, hiding your real IP address and location.</p>
             <p><strong className="text-foreground">Data Storage:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Browsing data is saved to your device's local storage</li>
