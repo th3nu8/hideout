@@ -27,23 +27,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Hash password (matches current custom auth)
-    const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Verify user exists and password matches
+    // Verify user exists (skip password check since user is already logged in)
     const { data: user, error: selErr } = await supabase
       .from('users')
       .select('id')
       .eq('id', userId)
-      .eq('password_hash', passwordHash)
       .maybeSingle();
 
     if (selErr || !user) {
       return new Response(
-        JSON.stringify({ error: 'Invalid credentials' }),
+        JSON.stringify({ error: 'Invalid user' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -51,6 +44,7 @@ serve(async (req) => {
     // Delete related data first to ensure cleanup
     await supabase.from('favorites').delete().eq('user_id', userId);
     await supabase.from('global_chat').delete().eq('user_id', userId);
+    await supabase.from('browser_data').delete().eq('user_id', userId);
 
     // Delete user
     const { error: delErr } = await supabase
