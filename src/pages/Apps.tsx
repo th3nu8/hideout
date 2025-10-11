@@ -26,31 +26,15 @@ const apps: App[] = appsData as any;
 const Apps = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [favorites, setFavorites] = useState<string[]>([]);
-
-  useEffect(() => {
-    setLoadingProgress({ current: 0, total: apps.length });
-    setIsLoading(true);
-    const interval = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev.current >= prev.total) {
-          clearInterval(interval);
-          setTimeout(() => setIsLoading(false), 300);
-          return prev;
-        }
-        return { ...prev, current: Math.min(prev.current + 1, prev.total) };
-      });
-    }, 15);
-    return () => clearInterval(interval);
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadFavorites = async () => {
       const storedUser = localStorage.getItem('hideout_user') || sessionStorage.getItem('hideout_user');
       if (!storedUser) {
         setFavorites([]);
+        setIsLoading(false);
         return;
       }
 
@@ -66,10 +50,15 @@ const Apps = () => {
         }
       } catch (error) {
         setFavorites([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
+    // Show a very short loading state even if not logged in for visual consistency
+    const timer = setTimeout(() => setIsLoading(false), 350);
     loadFavorites();
+    return () => clearTimeout(timer);
   }, []);
 
   const handleFavorite = async (appName: string) => {
@@ -132,9 +121,7 @@ const Apps = () => {
         <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent" />
-            <p className="text-muted-foreground text-lg">
-              Loading apps... {loadingProgress.current}/{loadingProgress.total}
-            </p>
+            <p className="text-muted-foreground text-lg">Loading apps...</p>
           </div>
         </main>
       </div>

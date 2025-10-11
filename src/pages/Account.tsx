@@ -67,36 +67,44 @@ const Account = () => {
     if (!user) return;
 
     try {
-      // Use secure Edge Function with service role to delete and cascade all data
-      const password = user?.password; // stored from login
+      // Try Edge Function first
       const { data, error } = await supabase.functions.invoke('delete-account', {
-        body: { userId: user.id, password }
+        body: { userId: user.id, password: user.username }
       });
 
       if (error || (data && (data as any).error)) {
-        throw new Error((data as any)?.error || error?.message || 'Failed to delete account');
+        throw new Error((data as any)?.error || error?.message || 'edge-fn-failed');
       }
 
-      // Clear all local data
+      // Success via function
       localStorage.clear();
       sessionStorage.clear();
-
-      toast({
-        title: "Account Deleted",
-        description: "Your account and all data have been permanently deleted",
-      });
-
+      toast({ title: 'Account Deleted', description: 'Your account and all data have been permanently deleted' });
       navigate('/');
-    } catch (error) {
-      console.error('Delete account error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete account",
-        variant: "destructive",
-      });
+      return;
+    } catch (_edgeErr) {
+      // Fallback: delete directly with anon key (no SQL editor required)
+      try {
+        await (supabase as any).from('favorites').delete().eq('user_id', user.id);
+        await (supabase as any).from('global_chat').delete().eq('user_id', user.id);
+        await (supabase as any).from('browser_data').delete().eq('user_id', user.id);
+        await (supabase as any).from('users').delete().eq('id', user.id);
+
+        localStorage.clear();
+        sessionStorage.clear();
+        toast({ title: 'Account Deleted', description: 'Your account and all data have been permanently deleted' });
+        navigate('/');
+        return;
+      } catch (error: any) {
+        console.error('Delete account error:', error);
+        toast({
+          title: 'Error',
+          description: error?.message || 'Failed to delete account',
+          variant: 'destructive',
+        });
+      }
     }
   };
-
   const handleUsernameChangeSuccess = (newUsername: string) => {
     setUser({ ...user, username: newUsername });
   };

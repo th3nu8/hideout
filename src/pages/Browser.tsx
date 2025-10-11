@@ -58,7 +58,7 @@ const Browser = () => {
   });
   
   const [urlInput, setUrlInput] = useState("");
-  const [engine, setEngine] = useState<"google" | "duckduckgo" | "bing">(() => {
+  const [engine, setEngine] = useState<"google" | "duckduckgo" | "bing" | "yahoo" | "yandex" | "brave">(() => {
     const saved = localStorage.getItem('hideout_browser_settings');
     if (saved) {
       try {
@@ -176,6 +176,12 @@ const Browser = () => {
           return `https://duckduckgo.com/?q=${q}`;
         case 'bing':
           return `https://www.bing.com/search?q=${q}`;
+        case 'yahoo':
+          return `https://search.yahoo.com/search?p=${q}`;
+        case 'yandex':
+          return `https://yandex.com/search/?text=${q}`;
+        case 'brave':
+          return `https://search.brave.com/search?q=${q}`;
         default:
           return `https://www.google.com/search?q=${q}`;
       }
@@ -339,15 +345,35 @@ const Browser = () => {
 
       if (settings) {
         const { homePage, usePreferredBrowser } = settings;
-        if (!usePreferredBrowser && typeof homePage === 'string' && homePage.trim()) {
+        // If usePreferredBrowser is true or undefined, use engine
+        // If false, use custom homePage
+        if (usePreferredBrowser !== false) {
+          // Use preferred browser (engine)
+          const homePages = { 
+            google: 'https://google.com', 
+            duckduckgo: 'https://duckduckgo.com', 
+            bing: 'https://bing.com',
+            yahoo: 'https://yahoo.com',
+            yandex: 'https://yandex.com',
+            brave: 'https://search.brave.com'
+          } as const;
+          homeUrl = homePages[engine] || 'https://google.com';
+        } else if (typeof homePage === 'string' && homePage.trim()) {
           homeUrl = homePage.trim();
         }
       }
     } catch {}
 
     if (!homeUrl) {
-      const homePages = { google: 'https://google.com', duckduckgo: 'https://duckduckgo.com', bing: 'https://bing.com' } as const;
-      homeUrl = homePages[engine];
+      const homePages = { 
+        google: 'https://google.com', 
+        duckduckgo: 'https://duckduckgo.com', 
+        bing: 'https://bing.com',
+        yahoo: 'https://yahoo.com',
+        yandex: 'https://yandex.com',
+        brave: 'https://search.brave.com'
+      } as const;
+      homeUrl = homePages[engine] || 'https://google.com';
     }
 
     setUrlInput(homeUrl);
