@@ -79,7 +79,7 @@ export const NavigationBar = ({
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Go Back (Alt+Left Arrow)</TooltipContent>
+          <TooltipContent>Go Back (Alt+Z+←)</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -88,7 +88,7 @@ export const NavigationBar = ({
               <ArrowRight className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Go Forward (Alt+Right Arrow)</TooltipContent>
+          <TooltipContent>Go Forward (Alt+Z+→)</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -97,7 +97,7 @@ export const NavigationBar = ({
               <RotateCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Reload Page (Alt+R)</TooltipContent>
+          <TooltipContent>Reload Page (Alt+Z+R)</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -201,10 +201,6 @@ export const NavigationBar = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuItem onClick={onSettingsClick}>
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={onHelpClick}>
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
@@ -212,6 +208,16 @@ export const NavigationBar = ({
             <DropdownMenuItem onClick={onHistoryClick}>
               <History className="h-4 w-4 mr-2" />
               History
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onClick={() => {
+              // Trigger custom event for fullscreen
+              window.dispatchEvent(new CustomEvent('hideout:fullscreen-tab'));
+            }}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Fullscreen Tab (Alt+Z+F)
             </DropdownMenuItem>
             
             <DropdownMenuSeparator />
@@ -231,12 +237,14 @@ export const NavigationBar = ({
             {bookmarks.length === 0 ? (
               <DropdownMenuItem disabled className="text-muted-foreground">No bookmarks yet</DropdownMenuItem>
             ) : (
-              bookmarks.slice(0, 5).map((bookmark, i) => (
-                <DropdownMenuItem key={i} onClick={() => onSelectUrl(bookmark)}>
-                  <Star className="h-3 w-3 mr-2 fill-primary" />
-                  {new URL(bookmark).hostname}
-                </DropdownMenuItem>
-              ))
+              <div className="max-h-[300px] overflow-y-auto">
+                {bookmarks.map((bookmark, i) => (
+                  <DropdownMenuItem key={i} onClick={() => onSelectUrl(bookmark)}>
+                    <Star className="h-3 w-3 mr-2 fill-primary" />
+                    {new URL(bookmark).hostname}
+                  </DropdownMenuItem>
+                ))}
+              </div>
             )}
             {bookmarks.length > 0 && (
               <DropdownMenuItem onClick={onClearBookmarks} className="text-destructive">
