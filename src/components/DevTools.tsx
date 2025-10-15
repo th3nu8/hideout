@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { X, Code, Terminal, Database, Cookie, FileText } from "lucide-react";
+import { X, Code, Terminal, Database, Cookie, FileText, Network, FolderOpen, Beaker, MousePointer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface DevToolsProps {
   onClose: () => void;
@@ -15,6 +16,7 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
   ]);
   const [height, setHeight] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [inspecting, setInspecting] = useState(false);
 
   const getLocalStorageItems = () => {
     const items: { key: string; value: string }[] = [];
@@ -67,7 +69,20 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
       
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant={inspecting ? "default" : "ghost"} 
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => {
+              setInspecting(!inspecting);
+              if (!inspecting) {
+                toast.info("Click an element to inspect it");
+              }
+            }}
+          >
+            <MousePointer className="w-4 h-4" />
+          </Button>
           <Code className="w-4 h-4 text-primary" />
           <h3 className="font-semibold">Developer Tools</h3>
         </div>
@@ -87,6 +102,14 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
             <Terminal className="w-4 h-4" />
             Console
           </TabsTrigger>
+          <TabsTrigger value="network" className="gap-2">
+            <Network className="w-4 h-4" />
+            Network
+          </TabsTrigger>
+          <TabsTrigger value="sources" className="gap-2">
+            <FolderOpen className="w-4 h-4" />
+            Sources
+          </TabsTrigger>
           <TabsTrigger value="storage" className="gap-2">
             <Database className="w-4 h-4" />
             Storage
@@ -94,6 +117,10 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
           <TabsTrigger value="cookies" className="gap-2">
             <Cookie className="w-4 h-4" />
             Cookies
+          </TabsTrigger>
+          <TabsTrigger value="experimental" className="gap-2">
+            <Beaker className="w-4 h-4" />
+            Experimental
           </TabsTrigger>
         </TabsList>
 
@@ -149,6 +176,51 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
           </ScrollArea>
         </TabsContent>
 
+        <TabsContent value="network" className="flex-1 m-0 p-0 overflow-hidden">
+          <ScrollArea className="h-full p-4">
+            <div className="space-y-2">
+              <div className="text-muted-foreground text-sm font-mono">
+                Network requests will appear here...
+              </div>
+              <div className="bg-muted p-2 rounded text-xs">
+                <div className="grid grid-cols-4 gap-2 font-semibold mb-2">
+                  <div>Name</div>
+                  <div>Status</div>
+                  <div>Type</div>
+                  <div>Size</div>
+                </div>
+                <div className="text-muted-foreground">No network activity recorded</div>
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="sources" className="flex-1 m-0 p-0 overflow-hidden">
+          <ScrollArea className="h-full p-4">
+            <div className="space-y-2 font-mono text-sm">
+              <div className="text-muted-foreground">Page sources:</div>
+              <div className="bg-muted p-2 rounded">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4" />
+                  <span>index.html</span>
+                </div>
+              </div>
+              <div className="bg-muted p-2 rounded">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  <span>styles.css</span>
+                </div>
+              </div>
+              <div className="bg-muted p-2 rounded">
+                <div className="flex items-center gap-2">
+                  <Code className="w-4 h-4" />
+                  <span>script.js</span>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
         <TabsContent value="cookies" className="flex-1 m-0 p-0 overflow-hidden">
           <ScrollArea className="h-full p-4">
             <div className="space-y-2">
@@ -160,6 +232,18 @@ export const DevTools = ({ onClose }: DevToolsProps) => {
               {getCookies().length === 0 && (
                 <div className="text-muted-foreground text-sm">No cookies found</div>
               )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="experimental" className="flex-1 m-0 p-0 overflow-hidden">
+          <ScrollArea className="h-full p-4">
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-2">
+                <Beaker className="w-12 h-12 mx-auto text-muted-foreground" />
+                <p className="text-muted-foreground">No experimental features available yet</p>
+                <p className="text-xs text-muted-foreground">Check back soon for new features!</p>
+              </div>
             </div>
           </ScrollArea>
         </TabsContent>

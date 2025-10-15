@@ -193,22 +193,6 @@ export const ContextMenu = ({ x, y, onClose, isOnBrowser }: ContextMenuProps) =>
         <div className="my-1 border-t border-border" />
 
         <button
-          onClick={handleDeleteCookies}
-          className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted/50 flex items-center gap-3 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete cookies
-        </button>
-
-        <button
-          onClick={handleDeleteLocalStorage}
-          className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted/50 flex items-center gap-3 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete local storage
-        </button>
-
-        <button
           onClick={handleSaveToAccount}
           disabled={!user}
           className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${
