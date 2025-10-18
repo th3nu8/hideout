@@ -1,0 +1,11 @@
+[
+  {
+    "id": "autoclicker",
+    "name": "Auto Clicker",
+    "author": "Hideout",
+    "version": "1.0.0",
+    "description": "Auto-click anywhere on screen. Toggle with Alt+A. Adjustable click rate.",
+    "icon": "https://hideout-addons.vercel.app/autoclicker/icon.png",
+    "scriptUrl": "https://hideout-addons.vercel.app/autoclicker/script.js"
+  }
+]
