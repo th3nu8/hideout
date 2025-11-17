@@ -1,96 +1,94 @@
-# 🎮 Hideout
+<div align="center">
+
+# **Hideout**
+
+<img src="public/images/preview.png" alt="Hideout Preview" width="800"/>
+
+**Hideout** is an open-source unblocked gaming platform featuring 200+ games, a secure proxy browser, real-time global chat, and customizable themes. Built for accessibility and performance with zero setup required.
+
+---
+
+## 🛠️ Developers
+
+### Prerequisites
+- **Node.js** (v18 or higher)
+- **Git**
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/Hideout-Network/hideout.git
+cd hideout
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+The app will be available at `http://localhost:8080`
+
+### Deployment
+
+```bash
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+Deploy the `dist` folder to any static hosting service (Vercel, Netlify, GitHub Pages, etc.)
+
+### Contributing Content
+
+Want to contribute games, themes, or addons? Visit our assets repository:
+
+**🎮 [hideout-assets](https://github.com/Hideout-Network/hideout-assets)**
+
+Submit a pull request with your additions. Full contribution guidelines are available in that repository.
+
+---
+
+## 📚 Tech Stack
 
 <div align="center">
 
-**Your Ultimate Web Entertainment Hub**
-
-Access games, apps, and browse the web securely - all in one platform
-
-[🚀 Launch Hideout](#) • [📖 Features](#features) • [🐛 Report Bug](mailto:hideout-network-buisness@hotmail.com)
-
----
+![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.4.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.1-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 
 </div>
 
-## ✨ Features
+---
 
-### 🎯 Games Library
-200+ games across multiple categories with smart favorites and fullscreen mode
+## 🔗 Quick Links
 
-### 🌐 Secure Browser
-Built-in proxy browser with multi-tab support and multiple search engines
+<div align="center">
 
-### 📱 Apps Hub
-Curated web applications with favorites system
+[![GitHub Stars](https://img.shields.io/github/stars/Hideout-Network/hideout?style=for-the-badge&logo=github&color=16a249&labelColor=000000)](https://github.com/Hideout-Network/hideout/stargazers)
+[![Discord](https://img.shields.io/badge/Discord-Join_Server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/HkbVraQH89)
+[![Report Bug](https://img.shields.io/badge/Report_Bug-Issues-red?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Hideout-Network/hideout/issues/new)
+[![License](https://img.shields.io/badge/License-MIT-16a249?style=for-the-badge&logo=balance-scale&logoColor=white)](LICENSE)
 
-### 💬 Global Chat
-Real-time chat with persistent history (last 100 messages)
-
-### 🔐 Account System
-Sync favorites, settings, and browser data across devices
+</div>
 
 ---
 
-## 🚀 Quick Start
+## 📜 License
 
-### Users
-1. Visit Hideout in your browser
-2. Browse games and apps without an account
-3. Create an account to save favorites and use advanced features
+© 2025 Hideout Network. All rights reserved.
 
-### Developers
-```bash
-npm install
-npm run dev
-npm run build
-```
-
-**Tech Stack:** React 18 • TypeScript • Tailwind CSS • Vite • Supabase
-
----
-
-## 🔧 Key Features
-
-### Browser Features
-- `hideout://newtab` - New tab page
-- `hideout://help` - Browser documentation
-- `hideout://settings` - Browser settings
-- `hideout://history` - Browsing history
-
-### Keyboard Shortcuts
-- `Alt+Z` then `I` - Open DevTools
-- `Alt+Z` then `F` - Fullscreen mode
-- `Alt+Z` then `T` - New tab
-- `Alt+Z` then `W` - Close tab
-- `Alt+Z` then `R` - Reload page
-
-### Data Persistence
-✅ Game & app favorites  
-✅ Browser tabs & history  
-✅ Bookmarks & settings  
-✅ Chat messages  
-
----
-
-## 🛡️ Privacy & Security
-
-- No tracking or data selling
-- Passwords encrypted with SHA-256
-- Local-first with cloud sync
-- Auto-cleanup of inactive accounts (2 weeks)
-
----
-
-## 📞 Support
-
-**Email:** [hideout-network-buisness@hotmail.com](mailto:hideout-network-buisness@hotmail.com)
-
-Use in-app features to report bugs or request games/apps
+Released under the [MIT License](LICENSE) - free to use, modify, and distribute.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by the Hideout team**
+Made with 💚 by the Hideout Network Team
 
 </div>
