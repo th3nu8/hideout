@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Heart, Maximize, Shuffle } from "lucide-react";
+import { Search, Heart, Maximize, Shuffle, Filter } from "lucide-react";
 import { FPSCounter } from "@/components/FPSCounter";
 import { GlobalChat } from "@/components/GlobalChat";
 import { StarBackground } from "@/components/StarBackground";
@@ -11,6 +11,12 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { GameLoader } from "@/components/GameLoader";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const GAME_URLS = [
   "https://cdn.jsdelivr.net/gh/gn-math/assets@main/zones.json",
@@ -26,6 +32,8 @@ type Game = {
   name: string;
   url: string;
   cover: string;
+  source?: 'zones' | 'hideout';
+  gridSpan?: string;
 };
 
 const Games = () => {
@@ -35,6 +43,7 @@ const Games = () => {
   const currentGameName = gameParam ? games.find(g => g.name.toLowerCase().replace(/\s+/g, '-') === gameParam)?.name : null;
   usePageTitle(currentGameName || 'Games');
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "zones" | "hideout">("all");
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +51,7 @@ const Games = () => {
   const [showGameLoader, setShowGameLoader] = useState(false);
   const [showFPS, setShowFPS] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,12 +65,23 @@ const Games = () => {
     loadGames();
   }, []);
 
+  const getRandomGridSpan = () => {
+    const spans = [
+      'col-span-1 row-span-1', // normal square
+      'col-span-2 row-span-2', // bigger square
+    ];
+    const weights = [0.925, 0.075]; // 92.5% normal, 7.5% bigger
+    const random = Math.random();
+    
+    return random < weights[0] ? spans[0] : spans[1];
+  };
+
   const loadGames = async () => {
     let lastError = null;
     let originalGames: Game[] = [];
-    let gitlabGames: Game[] = [];
+    let hideoutGames: Game[] = [];
 
-    // Load original games
+    // Load original games (zones)
     for (let url of GAME_URLS) {
       try {
         const response = await fetch(url + "?t=" + Date.now());
@@ -68,7 +89,7 @@ const Games = () => {
         
         const data = await response.json();
         const validGames = data.filter((g: Game) => g.id > 0 && !g.url.startsWith("http"));
-        originalGames = validGames;
+        originalGames = validGames.map(g => ({ ...g, source: 'zones' as const }));
         break;
       } catch (error) {
         lastError = error;
@@ -83,28 +104,37 @@ const Games = () => {
         const data = await response.json();
         const site = data.site || "https://hideout-games.onrender.com/public";
         
-        gitlabGames = data.games?.map((g: any, index: number) => ({
+        hideoutGames = data.games?.map((g: any, index: number) => ({
           id: originalGames.length + index + 1000,
-          name: `${g.name} (Gitlab)`,
+          name: g.name,
           url: `${site}${g.gamePath}`,
-          cover: `${site}${g.iconPath}`
+          cover: `${site}${g.iconPath}`,
+          source: 'hideout' as const
         })) || [];
       }
     } catch (error) {
       console.warn("Failed to load Hideout games:", error);
     }
 
-    if (originalGames.length === 0 && gitlabGames.length === 0) {
+    if (originalGames.length === 0 && hideoutGames.length === 0) {
       setLoadError(lastError?.message || 'Unknown error');
       setIsLoading(false);
       return;
     }
 
-    // Combine and randomize all games
-    const allGames = [...originalGames, ...gitlabGames];
-    const randomizedGames = allGames.sort(() => Math.random() - 0.5);
+    // Randomize each list separately
+    const randomizedOriginal = originalGames.sort(() => Math.random() - 0.5);
+    const randomizedHideout = hideoutGames.sort(() => Math.random() - 0.5);
     
-    setGames(randomizedGames);
+    // Combine and randomize all games with random grid spans
+    const allGames = [...randomizedOriginal, ...randomizedHideout]
+      .sort(() => Math.random() - 0.5)
+      .map(game => ({
+        ...game,
+        gridSpan: getRandomGridSpan()
+      }));
+    
+    setGames(allGames);
     setIsLoading(false);
   };
 
@@ -153,15 +183,21 @@ const Games = () => {
     loadFavorites();
   }, []);
 
+  // Helper function to create unique game identifier
+  const getGameId = (name: string, source?: 'zones' | 'hideout') => {
+    return `${name}|${source || 'zones'}`;
+  };
+
   useEffect(() => {
     const checkFavorite = async () => {
       if (!currentGame) return;
 
+      const gameId = getGameId(currentGame.name, currentGame.source);
       const localFavs: string[] = JSON.parse(localStorage.getItem('hideout_game_favorites') || '[]');
 
       const storedUser = localStorage.getItem('hideout_user') || sessionStorage.getItem('hideout_user');
       if (!storedUser) {
-        setIsFavorited(localFavs.includes(currentGame.name));
+        setIsFavorited(localFavs.includes(gameId));
         return;
       }
 
@@ -174,9 +210,9 @@ const Games = () => {
           .eq('data_type', 'game_favorites')
           .maybeSingle();
 
-        setIsFavorited(localFavs.includes(currentGame.name) || (data && Array.isArray(data.data) && data.data.includes(currentGame.name)));
+        setIsFavorited(localFavs.includes(gameId) || (data && Array.isArray(data.data) && data.data.includes(gameId)));
       } catch (error) {
-        setIsFavorited(localFavs.includes(currentGame.name));
+        setIsFavorited(localFavs.includes(gameId));
       }
     };
 
@@ -196,14 +232,27 @@ const Games = () => {
   };
 
   const filteredGames = games
-    .filter((game) => game.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((game) => {
+      const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSource = sourceFilter === "all" || game.source === sourceFilter;
+      const notFailedImage = !failedImages.has(game.id);
+      return matchesSearch && matchesSource && notFailedImage;
+    })
     .sort((a, b) => {
-      const aIsFavorite = favorites.includes(a.name);
-      const bIsFavorite = favorites.includes(b.name);
+      const aIsFavorite = favorites.includes(getGameId(a.name, a.source));
+      const bIsFavorite = favorites.includes(getGameId(b.name, b.source));
       
       if (aIsFavorite && !bIsFavorite) return -1;
       if (!aIsFavorite && bIsFavorite) return 1;
       return 0;
+    })
+    .map(game => {
+      const isFavorited = favorites.includes(getGameId(game.name, game.source));
+      return {
+        ...game,
+        // Reset to normal size when searching, filtering, or if favorited
+        gridSpan: searchQuery || sourceFilter !== "all" || isFavorited ? 'col-span-1 row-span-1' : game.gridSpan
+      };
     });
 
   // Sync favorites across pages/components and tabs
@@ -211,14 +260,14 @@ const Games = () => {
     const onFavUpdated = (e: any) => {
       const favs: string[] = e.detail?.favorites || [];
       setFavorites(favs);
-      if (currentGame) setIsFavorited(favs.includes(currentGame.name));
+      if (currentGame) setIsFavorited(favs.includes(getGameId(currentGame.name, currentGame.source)));
     };
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'hideout_game_favorites') {
         try {
           const favs = JSON.parse(e.newValue || '[]');
           setFavorites(favs);
-          if (currentGame) setIsFavorited(favs.includes(currentGame.name));
+          if (currentGame) setIsFavorited(favs.includes(getGameId(currentGame.name, currentGame.source)));
         } catch {}
       }
     };
@@ -228,26 +277,28 @@ const Games = () => {
       window.removeEventListener('hideout:favorites-updated', onFavUpdated as any);
       window.removeEventListener('storage', onStorage);
     };
-  }, [currentGame?.name]);
+  }, [currentGame?.name, currentGame?.source]);
 
-  const handleFavorite = async (gameName?: string) => {
-    const targetGame = gameName || currentGame?.name;
-    if (!targetGame) return;
+  const handleFavorite = async (gameName?: string, gameSource?: 'zones' | 'hideout') => {
+    const targetGameName = gameName || currentGame?.name;
+    const targetGameSource = gameSource || currentGame?.source;
+    if (!targetGameName || !targetGameSource) return;
 
-    const isFav = favorites.includes(targetGame);
+    const gameId = getGameId(targetGameName, targetGameSource);
+    const isFav = favorites.includes(gameId);
     let newFavorites: string[];
 
     if (isFav) {
-      newFavorites = favorites.filter(f => f !== targetGame);
+      newFavorites = favorites.filter(f => f !== gameId);
     } else {
-      newFavorites = [...favorites, targetGame];
+      newFavorites = [...favorites, gameId];
     }
 
     // Always update localStorage
     setFavorites(newFavorites);
     localStorage.setItem('hideout_game_favorites', JSON.stringify(newFavorites));
     window.dispatchEvent(new CustomEvent('hideout:favorites-updated', { detail: { favorites: newFavorites } }));
-    if (currentGame?.name === targetGame) setIsFavorited(!isFav);
+    if (currentGame?.name === targetGameName && currentGame?.source === targetGameSource) setIsFavorited(!isFav);
 
     // If user is logged in, also update database
     const storedUser = localStorage.getItem('hideout_user') || sessionStorage.getItem('hideout_user');
@@ -272,8 +323,8 @@ const Games = () => {
   };
 
   const handleMysteryGame = () => {
-    if (games.length === 0) return;
-    const randomGame = games[Math.floor(Math.random() * games.length)];
+    if (filteredGames.length === 0) return;
+    const randomGame = filteredGames[Math.floor(Math.random() * filteredGames.length)];
     handleGameClick(randomGame.name);
   };
 
@@ -282,13 +333,13 @@ const Games = () => {
     if (!currentGame) return;
 
     const loadGameContent = async () => {
-      const isGitlabGame = currentGame.name.includes('(Gitlab)');
+      const isHideoutGame = currentGame.source === 'hideout';
       const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
       
       if (!iframe) return;
 
-      if (isGitlabGame) {
-        // For Gitlab games, just set the src directly
+      if (isHideoutGame) {
+        // For Hideout games, just set the src directly
         iframe.src = currentGame.url;
       } else {
         // For original games, fetch HTML and write to iframe
@@ -432,7 +483,7 @@ const Games = () => {
             </p>
           </div>
 
-          {/* Search */}
+          {/* Search and Filters */}
           <div className="flex gap-3 flex-wrap">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -444,6 +495,27 @@ const Games = () => {
               />
             </div>
 
+            {/* Source Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 bg-card border-border">
+                  <Filter className="w-4 h-4" />
+                  {sourceFilter === "all" ? "All Sources" : sourceFilter === "zones" ? "List 1" : "List 2"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-card border-border z-50">
+                <DropdownMenuItem onClick={() => setSourceFilter("all")}>
+                  All Sources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSourceFilter("zones")}>
+                  List 1
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSourceFilter("hideout")}>
+                  List 2
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button onClick={handleMysteryGame} variant="outline" className="gap-2 bg-card border-primary/50 hover:bg-primary/10">
               <Shuffle className="w-4 h-4" />
               Feeling Lucky
@@ -451,53 +523,54 @@ const Games = () => {
           </div>
         </div>
 
-        {/* Games Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {filteredGames.map((game, index) => {
-            const isFav = favorites.includes(game.name);
+        {/* Games Grid - Masonry Style */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 auto-rows-[200px] gap-3">
+        {filteredGames.map((game, index) => {
+            const isFav = favorites.includes(getGameId(game.name, game.source));
             
             return (
               <div
                 key={`${game.id}-${game.name}`}
-                className="group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all duration-200 cursor-pointer animate-fade-in"
+                className={`group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-[1.02] transition-all duration-200 cursor-pointer animate-fade-in ${game.gridSpan || 'col-span-1 row-span-1'}`}
                 style={{ animationDelay: `${index * 20}ms` }}
+                onClick={() => handleGameClick(game.name)}
               >
-                <div 
-                  onClick={() => handleGameClick(game.name)}
-                  className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted"
-                >
+                <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
                   <img 
                     src={game.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)} 
                     alt={game.name} 
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" 
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                    onError={() => {
+                      setFailedImages(prev => new Set(prev).add(game.id));
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  {/* Dark gradient overlay with game name - only visible on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-4">
+                    <h3 className="text-white font-semibold text-sm sm:text-base line-clamp-2 drop-shadow-lg">
+                      {game.name}
+                    </h3>
+                  </div>
                   
                   {/* Heart Icon */}
                   <button
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      handleFavorite(game.name);
+                      handleFavorite(game.name, game.source);
                     }}
-                    className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10"
+                    className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10 ${
+                      isFav ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
                   >
                     <Heart className={`w-4 h-4 transition-all ${isFav ? 'fill-red-500 text-red-500' : 'text-white'}`} />
                   </button>
                 </div>
-                <div className="p-3 min-h-[70px] flex items-center justify-center">
-                  <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 text-center">
-                    {game.name}
-                  </h3>
-                </div>
               </div>
             );
           })}
-        </div>
+         </div>
 
         {/* No results */}
         {!isLoading && filteredGames.length === 0 && (
