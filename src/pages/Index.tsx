@@ -1,17 +1,12 @@
 import { Navigation } from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Dog } from "lucide-react";
-import { SiGithub, SiDiscord } from "react-icons/si";
+import { Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { ReportBugDialog } from "@/components/ReportBugDialog";
-import { RequestGameDialog } from "@/components/RequestGameDialog";
-import { GlobalChat } from "@/components/GlobalChat";
-import { StarBackground } from "@/components/StarBackground";
+import { useState } from "react";
+import { GridBackground } from "@/components/GridBackground";
+import { HomeShortcuts } from "@/components/HomeShortcuts";
 import { usePageTitle } from "@/hooks/use-page-title";
 import updatesData from "@/jsons/updates.json";
-import informationData from "@/jsons/information.json";
 
 const Index = () => {
   usePageTitle('Home');
@@ -35,14 +30,13 @@ const Index = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-background relative">
-      <StarBackground />
+    <div className="min-h-screen bg-background relative flex flex-col">
+      <GridBackground />
       <Navigation />
-      <GlobalChat />
 
-      {/* Main Content */}
-      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 pt-24 sm:pt-0">
-        <main className="relative text-center space-y-8 sm:space-y-12 animate-fade-in w-full max-w-3xl">
+      {/* Main Content - Centered */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
+        <main className="relative text-center space-y-6 sm:space-y-8 animate-fade-in w-full max-w-3xl">
           {/* Big Hideout Text */}
           <div className="relative">
             <h1 className="text-6xl sm:text-9xl md:text-[12rem] font-bold tracking-tight">
@@ -73,44 +67,39 @@ const Index = () => {
               Search
             </button>
           </form>
-          
-          {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-            <ReportBugDialog />
-            <RequestGameDialog variant="outline" />
-            <Button
-              onClick={() => window.open(informationData.github, "_blank")}
-              variant="outline"
-              className="gap-2"
-            >
-              <SiGithub className="w-4 h-4" />
-              GitHub
-            </Button>
-            <Button
-              onClick={() => window.open("https://discord.gg/HkbVraQH89", "_blank")}
-              variant="outline"
-              className="gap-2"
-            >
-              <SiDiscord className="w-4 h-4" />
-              Discord
-            </Button>
-          </div>
 
-          {/* Footer */}
-          <footer className="mt-24 text-center text-sm text-muted-foreground">
-            <p className="flex items-center justify-center gap-2">
-              &copy; {new Date().getFullYear()} Hideout Network. All rights reserved.
-              <span>•</span>
-              <Link 
-                to="/privacy-policy" 
-                className="hover:text-primary transition-colors"
-              >
-                Privacy Policy
-              </Link>
-            </p>
-          </footer>
+          {/* Shortcuts */}
+          <HomeShortcuts />
         </main>
       </div>
+
+      {/* Footer - Center */}
+      <footer className="py-4 text-center">
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} Hideout Network
+          <span>•</span>
+          <Link 
+            to="/privacy-policy" 
+            className="hover:text-primary transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link 
+            to="/credits" 
+            className="hover:text-primary transition-colors"
+          >
+            Credits
+          </Link>
+          <span>•</span>
+          <Link 
+            to="/help" 
+            className="hover:text-primary transition-colors"
+          >
+            Help
+          </Link>
+        </p>
+      </footer>
     </div>
   );
 };

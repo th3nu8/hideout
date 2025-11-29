@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/accordion";
 import { HelpCircle, Mail, MessageCircle, BookOpen, Globe, Shield, Zap } from "lucide-react";
 import { GlobalChat } from "@/components/GlobalChat";
-import { StarBackground } from "@/components/StarBackground";
+import { GridBackground } from "@/components/GridBackground";
 
 const Help = () => {
   usePageTitle('Help');
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       <Navigation />
       <GlobalChat />
 

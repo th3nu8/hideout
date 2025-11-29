@@ -2,25 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Heart, Shuffle } from "lucide-react";
+import { Search, Heart, Shuffle } from "lucide-react";
 import { GlobalChat } from "@/components/GlobalChat";
 import { RequestAppDialog } from "@/components/RequestAppDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { StarBackground } from "@/components/StarBackground";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { GridBackground } from "@/components/GridBackground";
 import { Button } from "@/components/ui/button";
 import appsData from "@/jsons/apps.json";
 
 type App = {
   name: string;
   icon: string;
-  category: string;
   description: string;
   link: string;
 };
@@ -31,7 +24,6 @@ const Apps = () => {
   usePageTitle('Apps');
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,37 +33,57 @@ const Apps = () => {
       if (!storedUser) {
         const localFavs = JSON.parse(localStorage.getItem('hideout_app_favorites') || '[]');
         setFavorites(localFavs);
+      } else {
+        try {
+          const user = JSON.parse(storedUser);
+          const { data } = await (supabase as any)
+            .from('user_data')
+            .select('data')
+            .eq('user_id', user.id)
+            .eq('data_type', 'app_favorites')
+            .maybeSingle();
+
+          if (data && Array.isArray(data.data)) {
+            setFavorites(data.data);
+            localStorage.setItem('hideout_app_favorites', JSON.stringify(data.data));
+          } else {
+            const localFavs = JSON.parse(localStorage.getItem('hideout_app_favorites') || '[]');
+            setFavorites(localFavs);
+          }
+        } catch (error) {
+          const localFavs = JSON.parse(localStorage.getItem('hideout_app_favorites') || '[]');
+          setFavorites(localFavs);
+        }
+      }
+    };
+
+    const preloadImages = () => {
+      const imageUrls = apps.map(app => app.icon);
+      let loadedCount = 0;
+      const totalImages = imageUrls.length;
+      
+      if (totalImages === 0) {
         setIsLoading(false);
         return;
       }
 
-      try {
-        const user = JSON.parse(storedUser);
-        const { data } = await (supabase as any)
-          .from('user_data')
-          .select('data')
-          .eq('user_id', user.id)
-          .eq('data_type', 'app_favorites')
-          .maybeSingle();
+      imageUrls.forEach(url => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          loadedCount++;
+          if (loadedCount >= totalImages) {
+            setIsLoading(false);
+          }
+        };
+        img.src = url;
+      });
 
-        if (data && Array.isArray(data.data)) {
-          setFavorites(data.data);
-          localStorage.setItem('hideout_app_favorites', JSON.stringify(data.data));
-        } else {
-          const localFavs = JSON.parse(localStorage.getItem('hideout_app_favorites') || '[]');
-          setFavorites(localFavs);
-        }
-      } catch (error) {
-        const localFavs = JSON.parse(localStorage.getItem('hideout_app_favorites') || '[]');
-        setFavorites(localFavs);
-      } finally {
-        setIsLoading(false);
-      }
+      // Fallback timeout in case images take too long
+      setTimeout(() => setIsLoading(false), 10000);
     };
 
-    const timer = setTimeout(() => setIsLoading(false), 2000);
     loadFavorites();
-    return () => clearTimeout(timer);
+    preloadImages();
   }, []);
 
   const handleFavorite = async (appName: string) => {
@@ -109,11 +121,7 @@ const Apps = () => {
   };
 
   const filteredApps = apps
-    .filter((app) => {
-      const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === "all" || app.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    })
+    .filter((app) => app.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
       const aIsFavorite = favorites.includes(a.name);
       const bIsFavorite = favorites.includes(b.name);
@@ -122,8 +130,6 @@ const Apps = () => {
       if (!aIsFavorite && bIsFavorite) return 1;
       return 0;
     });
-
-  const allCategories = Array.from(new Set(apps.map(app => app.category)));
 
   const handleFeelingLucky = () => {
     const randomApp = apps[Math.floor(Math.random() * apps.length)];
@@ -147,7 +153,7 @@ const Apps = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       <Navigation />
       <GlobalChat />
 
@@ -161,7 +167,7 @@ const Apps = () => {
             </p>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search */}
           <div className="flex gap-3 flex-wrap">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -173,51 +179,29 @@ const Apps = () => {
               />
             </div>
 
-            {/* Category Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 bg-card border-border">
-                  <Filter className="w-4 h-4" />
-                  {categoryFilter === "all" ? "All" : categoryFilter}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-card border-border z-50">
-                <DropdownMenuItem onClick={() => setCategoryFilter("all")}>
-                  All
-                </DropdownMenuItem>
-                {allCategories.map((category) => (
-                  <DropdownMenuItem key={category} onClick={() => setCategoryFilter(category)}>
-                    {category}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             <Button onClick={handleFeelingLucky} variant="outline" className="gap-2 bg-card border-primary/50 hover:bg-primary/10">
               <Shuffle className="w-4 h-4" />
               Feeling Lucky
             </Button>
-
-            
           </div>
         </div>
 
-        {/* Apps Grid - Poki style */}
+        {/* Apps Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {filteredApps.map((app, index) => {
+          {filteredApps.map((app, index) => {
             const isFav = favorites.includes(app.name);
             
             return (
               <div
                 key={app.name}
-                className="group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all duration-200 cursor-pointer animate-fade-in"
+                className="group relative rounded-lg overflow-hidden cursor-pointer animate-fade-in"
                 style={{ animationDelay: `${index * 20}ms` }}
               >
                 <a
                   href={`/browser?url=${encodeURIComponent(app.link)}`}
                   className="block"
                 >
-                  <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
+                  <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted rounded-lg">
                     <img 
                       src={app.icon} 
                       alt={app.name} 
@@ -227,32 +211,28 @@ const Apps = () => {
                         target.style.display = 'none';
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     
-                    {/* Heart Icon - Bottom Right */}
+                    {/* Dark gradient overlay with app name - only visible on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <h3 className="text-white font-semibold text-sm line-clamp-2 drop-shadow-lg">
+                        {app.name}
+                      </h3>
+                    </div>
+                    
+                    {/* Heart Icon - Top Right */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         handleFavorite(app.name);
                       }}
-                      className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10"
+                      className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:bg-red-500/90 hover:scale-110 z-10 ${
+                        isFav ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
                     >
                       <Heart className={`w-4 h-4 transition-all ${isFav ? 'fill-red-500 text-red-500' : 'text-white'}`} />
                     </button>
                   </div>
-                </a>
-                
-                <a
-                  href={`/browser?url=${encodeURIComponent(app.link)}`}
-                  className="block p-2"
-                >
-                  <h3 className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
-                    {app.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {app.category}
-                  </p>
                 </a>
               </div>
             );
@@ -262,7 +242,7 @@ const Apps = () => {
         {/* No results */}
         {filteredApps.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No apps found matching your filters</p>
+            <p className="text-muted-foreground">No apps found matching your search</p>
           </div>
         )}
       </main>

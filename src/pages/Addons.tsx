@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { toast } from 'sonner';
-import { StarBackground } from '@/components/StarBackground';
+import { GridBackground } from '@/components/GridBackground';
 
 type Addon = {
   id: string;
@@ -163,7 +163,7 @@ const Addons = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">

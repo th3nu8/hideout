@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Bell, Palette, Database, Trash2, Globe, Zap, Activity } from "lucide-react";
+import { Settings, Bell, Palette, Database, Trash2, Globe, Zap, Activity, MousePointer2 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { StarBackground } from "@/components/StarBackground";
+import { GridBackground } from "@/components/GridBackground";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useThemeSystem } from "@/hooks/use-theme-system";
 
@@ -39,6 +40,9 @@ type SettingsData = {
   selectedTheme: string;
   aboutBlankFavicon?: string;
   aboutBlankTabName?: string;
+  customCursorEnabled?: boolean;
+  cursorSmoothness?: number;
+  cursorSize?: number;
 };
 
 const SettingsPage = () => {
@@ -61,6 +65,9 @@ const SettingsPage = () => {
     selectedTheme: '',
     aboutBlankFavicon: '',
     aboutBlankTabName: 'Hideout',
+    customCursorEnabled: false,
+    cursorSmoothness: 0.65,
+    cursorSize: 36,
   });
   
   const [clipboardEnabled, setClipboardEnabled] = useState(false);
@@ -116,6 +123,9 @@ const SettingsPage = () => {
         selectedTheme: currentThemeId,
         aboutBlankFavicon: '',
         aboutBlankTabName: 'Hideout',
+        customCursorEnabled: false,
+        cursorSmoothness: 0.65,
+        cursorSize: 36,
       };
       
       if (savedSettings) {
@@ -226,6 +236,9 @@ const SettingsPage = () => {
     // Apply settings immediately
     applySettings(newSettings);
     
+    // Dispatch event for cursor settings changes
+    window.dispatchEvent(new Event('cursorSettingsChanged'));
+    
     toast.success("Settings saved", { duration: 2000 });
   };
 
@@ -309,6 +322,9 @@ const SettingsPage = () => {
       selectedTheme: themesData['main-theme'],
       aboutBlankFavicon: '',
       aboutBlankTabName: 'Hideout',
+      customCursorEnabled: false,
+      cursorSmoothness: 0.65,
+      cursorSize: 36,
     };
     
     setSettings(defaultSettings);
@@ -399,10 +415,14 @@ const SettingsPage = () => {
 
   if (themesLoading || !themesData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading settings...</p>
+      <div className="min-h-screen bg-background relative">
+        <GridBackground />
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[calc(100vh-6rem)]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-muted-foreground">Loading settings...</p>
+          </div>
         </div>
       </div>
     );
@@ -410,7 +430,7 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       <Navigation />
       <GlobalChat />
 
@@ -482,18 +502,29 @@ const SettingsPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Theme</Label>
-                <Select value={currentThemeId} onValueChange={handleThemeChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a theme" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto custom-scrollbar">
-                    {themesData.themes.map((theme) => (
-                      <SelectItem key={theme.id} value={theme.id}>
-                        {theme.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const effectiveThemeId = currentThemeId || themesData['main-theme'];
+                  const selectedTheme = themesData.themes.find(t => t.id === effectiveThemeId);
+                  return (
+                    <Select 
+                      value={effectiveThemeId} 
+                      onValueChange={handleThemeChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue>
+                          {selectedTheme?.name || 'Default Dark'}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto custom-scrollbar bg-popover">
+                        {themesData.themes.map((theme) => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
             </div>
           </Card>
@@ -620,6 +651,68 @@ const SettingsPage = () => {
                   onCheckedChange={(v) => handleChange('showFPS', v)} 
                 />
               </div>
+            </div>
+          </Card>
+
+          {/* Custom Cursor Settings */}
+          <Card className="p-4 sm:p-6 bg-card border-border">
+            <div className="flex items-center gap-3 mb-4">
+              <MousePointer2 className="w-5 h-5 text-primary" />
+              <h2 className="text-lg sm:text-xl font-semibold">Custom Cursor</h2>
+              <span className="px-2.5 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded-full">Experimental</span>
+            </div>
+            <Separator className="mb-4" />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable Custom Cursor</Label>
+                  <p className="text-sm text-muted-foreground">Replace default cursor with custom design</p>
+                </div>
+                <Switch 
+                  checked={settings.customCursorEnabled || false} 
+                  onCheckedChange={(v) => handleChange('customCursorEnabled', v)} 
+                />
+              </div>
+              
+              {settings.customCursorEnabled && (
+                <>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Smoothness</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {Math.round((settings.cursorSmoothness || 0.65) * 100)}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[(settings.cursorSmoothness || 0.65) * 100]}
+                      onValueChange={([v]) => handleChange('cursorSmoothness', v / 100)}
+                      min={10}
+                      max={100}
+                      step={5}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">Higher values make cursor follow faster</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Cursor Size</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.cursorSize || 36}px
+                      </span>
+                    </div>
+                    <Slider
+                      value={[settings.cursorSize || 36]}
+                      onValueChange={([v]) => handleChange('cursorSize', v)}
+                      min={24}
+                      max={64}
+                      step={4}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">Adjust the size of the cursor</p>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Heart, Maximize, Shuffle, Filter } from "lucide-react";
 import { FPSCounter } from "@/components/FPSCounter";
 import { GlobalChat } from "@/components/GlobalChat";
-import { StarBackground } from "@/components/StarBackground";
+import { GridBackground } from "@/components/GridBackground";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { GameLoader } from "@/components/GameLoader";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ type Game = {
   name: string;
   url: string;
   cover: string;
-  source?: 'zones' | 'hideout';
+  source?: 'zones' | 'hideout' | 'list3';
   gridSpan?: string;
 };
 
@@ -43,7 +43,7 @@ const Games = () => {
   const currentGameName = gameParam ? games.find(g => g.name.toLowerCase().replace(/\s+/g, '-') === gameParam)?.name : null;
   usePageTitle(currentGameName || 'Games');
   const [searchQuery, setSearchQuery] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<"all" | "zones" | "hideout">("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "zones" | "hideout" | "list3">("all");
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +52,9 @@ const Games = () => {
   const [showFPS, setShowFPS] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const [displayedCount, setDisplayedCount] = useState(80);
+  const [sidebarGamesKey, setSidebarGamesKey] = useState(0);
+  const loadingMoreRef = useRef(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,18 +71,22 @@ const Games = () => {
   const getRandomGridSpan = () => {
     const spans = [
       'col-span-1 row-span-1', // normal square
-      'col-span-2 row-span-2', // bigger square
+      'col-span-3 row-span-3', // large square (3x3)
+      'col-span-2 row-span-2', // medium square (2x2)
     ];
-    const weights = [0.925, 0.075]; // 92.5% normal, 7.5% bigger
+    const weights = [0.925, 0.025, 0.05]; // 92.5% normal, 2.5% large (3x3), 5% medium (2x2)
     const random = Math.random();
     
-    return random < weights[0] ? spans[0] : spans[1];
+    if (random < weights[0]) return spans[0];
+    if (random < weights[0] + weights[1]) return spans[1];
+    return spans[2];
   };
 
   const loadGames = async () => {
     let lastError = null;
     let originalGames: Game[] = [];
     let hideoutGames: Game[] = [];
+    let list3Games: Game[] = [];
 
     // Load original games (zones)
     for (let url of GAME_URLS) {
@@ -116,7 +123,30 @@ const Games = () => {
       console.warn("Failed to load Hideout games:", error);
     }
 
-    if (originalGames.length === 0 && hideoutGames.length === 0) {
+    // Load List 3 games from Supabase
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const list3Client = createClient(
+        "https://hqlgppguxhqeaonjzinv.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxbGdwcGd1eGhxZWFvbmp6aW52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI2MjYwNDQsImV4cCI6MjA0ODIwMjA0NH0.4LuWk4qxp0NRZ5_erEIJq5BHq5qZiSE4zTUFS1ioZw8"
+      );
+      
+      const { data: list3Data, error } = await list3Client.rpc("get_apps_ordered_by_title");
+      
+      if (!error && list3Data) {
+        list3Games = list3Data.map((g: any, index: number) => ({
+          id: originalGames.length + hideoutGames.length + index + 2000,
+          name: g.title.replaceAll('-', ' '),
+          url: g.link,
+          cover: g.icon,
+          source: 'list3' as const
+        }));
+      }
+    } catch (error) {
+      console.warn("Failed to load List 3 games:", error);
+    }
+
+    if (originalGames.length === 0 && hideoutGames.length === 0 && list3Games.length === 0) {
       setLoadError(lastError?.message || 'Unknown error');
       setIsLoading(false);
       return;
@@ -125,9 +155,10 @@ const Games = () => {
     // Randomize each list separately
     const randomizedOriginal = originalGames.sort(() => Math.random() - 0.5);
     const randomizedHideout = hideoutGames.sort(() => Math.random() - 0.5);
+    const randomizedList3 = list3Games.sort(() => Math.random() - 0.5);
     
     // Combine and randomize all games with random grid spans
-    const allGames = [...randomizedOriginal, ...randomizedHideout]
+    const allGames = [...randomizedOriginal, ...randomizedHideout, ...randomizedList3]
       .sort(() => Math.random() - 0.5)
       .map(game => ({
         ...game,
@@ -135,7 +166,31 @@ const Games = () => {
       }));
     
     setGames(allGames);
-    setIsLoading(false);
+
+    // Preload images before showing content
+    const imagesToPreload = allGames.slice(0, 50); // Preload first 50 images
+    let loadedCount = 0;
+    const totalToLoad = imagesToPreload.length;
+
+    if (totalToLoad === 0) {
+      setIsLoading(false);
+      return;
+    }
+
+    imagesToPreload.forEach(game => {
+      const img = new Image();
+      const coverUrl = game.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL);
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        if (loadedCount >= totalToLoad) {
+          setIsLoading(false);
+        }
+      };
+      img.src = coverUrl;
+    });
+
+    // Fallback timeout in case images take too long
+    setTimeout(() => setIsLoading(false), 15000);
   };
 
   useEffect(() => {
@@ -184,7 +239,7 @@ const Games = () => {
   }, []);
 
   // Helper function to create unique game identifier
-  const getGameId = (name: string, source?: 'zones' | 'hideout') => {
+  const getGameId = (name: string, source?: 'zones' | 'hideout' | 'list3') => {
     return `${name}|${source || 'zones'}`;
   };
 
@@ -246,14 +301,43 @@ const Games = () => {
       if (!aIsFavorite && bIsFavorite) return 1;
       return 0;
     })
-    .map(game => {
-      const isFavorited = favorites.includes(getGameId(game.name, game.source));
-      return {
-        ...game,
-        // Reset to normal size when searching, filtering, or if favorited
-        gridSpan: searchQuery || sourceFilter !== "all" || isFavorited ? 'col-span-1 row-span-1' : game.gridSpan
-      };
-    });
+    .map(game => ({
+      ...game,
+      // When searching, make all games 2x2; otherwise keep original variable sizes
+      gridSpan: searchQuery ? 'col-span-2 row-span-2' : game.gridSpan
+    }));
+
+  // Games to display (paginated)
+  const displayedGames = filteredGames.slice(0, displayedCount);
+  const hasMoreGames = displayedCount < filteredGames.length;
+
+  // Reset displayed count when search or filter changes
+  useEffect(() => {
+    setDisplayedCount(80);
+  }, [searchQuery, sourceFilter]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (loadingMoreRef.current || !hasMoreGames) return;
+
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Load more when user scrolls past 70% of the page
+    if (scrollTop + windowHeight > documentHeight * 0.7) {
+      loadingMoreRef.current = true;
+      setDisplayedCount(prev => Math.min(prev + 30, filteredGames.length));
+      setTimeout(() => {
+        loadingMoreRef.current = false;
+      }, 100);
+    }
+  }, [hasMoreGames, filteredGames.length]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // Sync favorites across pages/components and tabs
   useEffect(() => {
@@ -279,7 +363,7 @@ const Games = () => {
     };
   }, [currentGame?.name, currentGame?.source]);
 
-  const handleFavorite = async (gameName?: string, gameSource?: 'zones' | 'hideout') => {
+  const handleFavorite = async (gameName?: string, gameSource?: 'zones' | 'hideout' | 'list3') => {
     const targetGameName = gameName || currentGame?.name;
     const targetGameSource = gameSource || currentGame?.source;
     if (!targetGameName || !targetGameSource) return;
@@ -333,13 +417,13 @@ const Games = () => {
     if (!currentGame) return;
 
     const loadGameContent = async () => {
-      const isHideoutGame = currentGame.source === 'hideout';
+      const isDirectLoad = currentGame.source === 'hideout' || currentGame.source === 'list3';
       const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
       
       if (!iframe) return;
 
-      if (isHideoutGame) {
-        // For Hideout games, just set the src directly
+      if (isDirectLoad) {
+        // For Hideout and List 3 games, just set the src directly
         iframe.src = currentGame.url;
       } else {
         // For original games, fetch HTML and write to iframe
@@ -369,64 +453,127 @@ const Games = () => {
     loadGameContent();
   }, [currentGame, toast]);
 
+  // Get random games for side panels (excluding current game)
+  const getRandomGamesForSidebar = useCallback((count: number) => {
+    const availableGames = games.filter(g => g.name !== currentGame?.name);
+    const shuffled = [...availableGames].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }, [games, currentGame?.name, sidebarGamesKey]);
+
+  // Refresh sidebar games every 30 seconds
+  useEffect(() => {
+    if (!currentGame) return;
+    
+    const interval = setInterval(() => {
+      setSidebarGamesKey(prev => prev + 1);
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [currentGame]);
+
   // If a game is selected, show the game player
   if (currentGame) {
+    const leftPanelGames = getRandomGamesForSidebar(8);
+    const rightPanelGames = getRandomGamesForSidebar(8);
+
     return (
       <div className="min-h-screen bg-background">
         {showFPS && <FPSCounter />}
         <Navigation />
-        <main className="pt-24 px-4 sm:px-6 pb-12 max-w-4xl mx-auto">
-          <div className="space-y-3">
-            {/* Game Title with Icon */}
-            <div className="w-full bg-card rounded-lg border border-border p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                <img 
-                  src={currentGame.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)} 
-                  alt={currentGame.name} 
-                  className="w-full h-full object-cover" 
-                />
+        <main className="pt-24 px-4 sm:px-6 pb-12">
+          <div className="flex gap-4 justify-center items-stretch">
+            {/* Left Side Panel */}
+            <div className="hidden lg:flex flex-col w-24">
+              <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-2 h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
+                {leftPanelGames.map((game, index) => (
+                  <button
+                    key={`left-${game.id}-${index}-${sidebarGamesKey}`}
+                    onClick={() => handleGameClick(game.name)}
+                    className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-all hover:scale-105"
+                  >
+                    <img
+                      src={game.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)}
+                      alt={game.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{currentGame.name}</h1>
-            </div>
-            
-            {/* Game Iframe */}
-            <div className="w-full bg-card rounded-lg overflow-hidden border border-border relative" style={{ aspectRatio: '16/9' }}>
-              {showGameLoader && (
-                <GameLoader
-                  gameName={currentGame.name}
-                  gameImage={currentGame.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)}
-                  onLoadComplete={() => setShowGameLoader(false)}
-                />
-              )}
-              <iframe
-                id="game-iframe"
-                className="w-full h-full"
-                title={currentGame.name}
-                allowFullScreen
-              />
             </div>
 
-            {/* Controls */}
-            <div className="w-full bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-4 flex gap-3">
-              <Button
-                onClick={handleFullscreen}
-                disabled={showGameLoader}
-                className="gap-2 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Maximize className="w-4 h-4" />
-                Fullscreen
-              </Button>
-              <Button
-                onClick={() => handleFavorite()}
-                className={`gap-2 transition-colors ${
-                  isFavorited 
-                    ? 'bg-red-600 hover:bg-red-700 text-white' 
-                    : 'bg-red-500/80 hover:bg-red-600 text-white'
-                }`}
-              >
-                <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
-                {isFavorited ? 'Favorited' : 'Favorite'}
-              </Button>
+            {/* Center Content */}
+            <div className="flex-1 max-w-4xl space-y-3">
+              {/* Game Title with Icon */}
+              <div className="w-full bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                  <img 
+                    src={currentGame.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)} 
+                    alt={currentGame.name} 
+                    className="w-full h-full object-cover" 
+                  />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{currentGame.name}</h1>
+              </div>
+              
+              {/* Game Iframe */}
+              <div className="w-full bg-card rounded-lg overflow-hidden border border-border relative" style={{ aspectRatio: '16/9' }}>
+                {showGameLoader && (
+                  <GameLoader
+                    gameName={currentGame.name}
+                    gameImage={currentGame.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)}
+                    onLoadComplete={() => setShowGameLoader(false)}
+                  />
+                )}
+                <iframe
+                  key={currentGame.name + '-' + currentGame.source}
+                  id="game-iframe"
+                  className="w-full h-full"
+                  title={currentGame.name}
+                  allowFullScreen
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="w-full bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-4 flex gap-3">
+                <Button
+                  onClick={handleFullscreen}
+                  disabled={showGameLoader}
+                  className="gap-2 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Maximize className="w-4 h-4" />
+                  Fullscreen
+                </Button>
+                <Button
+                  onClick={() => handleFavorite()}
+                  className={`gap-2 transition-colors ${
+                    isFavorited 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'bg-red-500/80 hover:bg-red-600 text-white'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+                  {isFavorited ? 'Favorited' : 'Favorite'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Right Side Panel */}
+            <div className="hidden lg:flex flex-col w-24">
+              <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-2 h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
+                {rightPanelGames.map((game, index) => (
+                  <button
+                    key={`right-${game.id}-${index}-${sidebarGamesKey}`}
+                    onClick={() => handleGameClick(game.name)}
+                    className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-all hover:scale-105"
+                  >
+                    <img
+                      src={game.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)}
+                      alt={game.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </main>
@@ -438,10 +585,10 @@ const Games = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background relative">
-        <StarBackground />
+        <GridBackground />
         <Navigation />
         <GlobalChat />
-        <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto relative z-10">
+        <main className="pt-24 px-8 lg:px-12 pb-12 relative z-10">
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent" />
             <p className="text-muted-foreground text-lg">Loading games...</p>
@@ -454,10 +601,10 @@ const Games = () => {
   if (loadError) {
     return (
       <div className="min-h-screen bg-background relative">
-        <StarBackground />
+        <GridBackground />
         <Navigation />
         <GlobalChat />
-        <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto relative z-10">
+        <main className="pt-24 px-8 lg:px-12 pb-12 relative z-10">
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <p className="text-red-500 text-lg">Failed to load games: {loadError}</p>
             <Button onClick={() => window.location.reload()}>Retry</Button>
@@ -469,11 +616,11 @@ const Games = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       <Navigation />
       <GlobalChat />
 
-      <main className="pt-24 px-4 sm:px-6 pb-12 max-w-7xl mx-auto relative z-10">
+      <main className="pt-24 px-8 lg:px-12 pb-12 relative z-10">
         {/* Header */}
         <div className="space-y-6 mb-12 animate-fade-in">
           <div>
@@ -484,15 +631,21 @@ const Games = () => {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input 
-                placeholder="Search games..." 
-                className="pl-10 bg-card border-border transition-colors"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          <div className="flex gap-3 flex-wrap items-center">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input 
+                  placeholder={`Search among ${
+                    sourceFilter === "all" 
+                      ? games.length 
+                      : games.filter(g => g.source === sourceFilter).length
+                  } games`}
+                  className="pl-10 bg-card border-border transition-colors"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Source Filter */}
@@ -500,18 +653,21 @@ const Games = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 bg-card border-border">
                   <Filter className="w-4 h-4" />
-                  {sourceFilter === "all" ? "All Sources" : sourceFilter === "zones" ? "List 1" : "List 2"}
+                  {sourceFilter === "all" ? "All Sources" : sourceFilter === "zones" ? "List 1" : sourceFilter === "hideout" ? "List 2" : "List 3"}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-card border-border z-50">
                 <DropdownMenuItem onClick={() => setSourceFilter("all")}>
-                  All Sources
+                  All Sources ({games.length})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSourceFilter("zones")}>
-                  List 1
+                  List 1 ({games.filter(g => g.source === 'zones').length})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSourceFilter("hideout")}>
-                  List 2
+                  List 2 ({games.filter(g => g.source === 'hideout').length})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSourceFilter("list3")}>
+                  List 3 ({games.filter(g => g.source === 'list3').length})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -524,15 +680,18 @@ const Games = () => {
         </div>
 
         {/* Games Grid - Masonry Style */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 auto-rows-[200px] gap-3">
-        {filteredGames.map((game, index) => {
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12 gap-2 auto-rows-fr" style={{ gridAutoFlow: 'dense' }}>
+        {displayedGames.map((game, index) => {
             const isFav = favorites.includes(getGameId(game.name, game.source));
             
             return (
               <div
                 key={`${game.id}-${game.name}`}
-                className={`group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-[1.02] transition-all duration-200 cursor-pointer animate-fade-in ${game.gridSpan || 'col-span-1 row-span-1'}`}
-                style={{ animationDelay: `${index * 20}ms` }}
+                className={`group relative bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 cursor-pointer animate-fade-in aspect-square ${game.gridSpan || 'col-span-1 row-span-1'}`}
+                style={{ 
+                  animationDelay: `${index * 20}ms`,
+                  transition: 'border-color 0.2s ease'
+                }}
                 onClick={() => handleGameClick(game.name)}
               >
                 <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
@@ -540,14 +699,14 @@ const Games = () => {
                     src={game.cover.replace('{COVER_URL}', COVER_URL).replace('{HTML_URL}', HTML_URL)} 
                     alt={game.name} 
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
                     onError={() => {
                       setFailedImages(prev => new Set(prev).add(game.id));
                     }}
                   />
                   
                   {/* Dark gradient overlay with game name - only visible on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-4">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                     <h3 className="text-white font-semibold text-sm sm:text-base line-clamp-2 drop-shadow-lg">
                       {game.name}
                     </h3>

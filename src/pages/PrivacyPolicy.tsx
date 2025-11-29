@@ -1,5 +1,5 @@
 import { Navigation } from "@/components/Navigation";
-import { StarBackground } from "@/components/StarBackground";
+import { GridBackground } from "@/components/GridBackground";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -9,7 +9,7 @@ const PrivacyPolicy = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <StarBackground />
+      <GridBackground />
       <Navigation />
 
       <div className="container mx-auto px-4 sm:px-6 py-24 max-w-4xl">
