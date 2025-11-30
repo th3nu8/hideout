@@ -3,7 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, ChevronDown, Plus, Key, ExternalLink, Image, FileText, Code, X } from "lucide-react";
+import { Send, ChevronDown, Plus, Key, ExternalLink, Image, FileText, Code, X, Brain } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { toast } from "sonner";
 import openaiLogo from "@/images/openailogo.svg";
@@ -356,6 +357,8 @@ const AI = () => {
   const [newKeyValue, setNewKeyValue] = useState("");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [markdownEnabled, setMarkdownEnabled] = useState<Record<number, boolean>>({});
+  const [showMemoryDialog, setShowMemoryDialog] = useState(false);
+  const [memory, setMemory] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -363,6 +366,20 @@ const AI = () => {
   const [welcomeMessage] = useState(() => 
     WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)]
   );
+
+  // Load memory from localStorage
+  useEffect(() => {
+    const savedMemory = localStorage.getItem("ai_memory");
+    if (savedMemory) {
+      setMemory(savedMemory);
+    }
+  }, []);
+
+  const handleSaveMemory = () => {
+    localStorage.setItem("ai_memory", memory);
+    setShowMemoryDialog(false);
+    toast.success("Memory saved");
+  };
 
   // Load API keys from localStorage and check for env variable
   useEffect(() => {
@@ -579,6 +596,12 @@ const AI = () => {
         apiMessages.push({ role: "user", content: userMessage });
       }
 
+      // Build system message with memory if available
+      const systemMessages: any[] = [];
+      if (memory.trim()) {
+        systemMessages.push({ role: "system", content: memory.trim() });
+      }
+
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -587,7 +610,7 @@ const AI = () => {
         },
         body: JSON.stringify({
           model: selectedModel.id,
-          messages: apiMessages,
+          messages: [...systemMessages, ...apiMessages],
           max_tokens: 4096,
           temperature: 0.7,
         }),
@@ -848,6 +871,17 @@ const AI = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Memory Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setShowMemoryDialog(true)}
+              >
+                <Brain className="w-4 h-4" />
+                Memory
+              </Button>
+
               {/* Model Selector */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -930,6 +964,29 @@ const AI = () => {
             </div>
             <Button onClick={handleAddApiKey} className="w-full">
               Add API Key
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Memory Dialog */}
+      <Dialog open={showMemoryDialog} onOpenChange={setShowMemoryDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Memory</DialogTitle>
+            <DialogDescription>
+              Add custom instructions that the AI will remember for all conversations.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Textarea
+              value={memory}
+              onChange={(e) => setMemory(e.target.value)}
+              placeholder="e.g., Always give me answers only, no explanation"
+              className="min-h-[200px] resize-none"
+            />
+            <Button onClick={handleSaveMemory} className="w-full">
+              Save
             </Button>
           </div>
         </DialogContent>
