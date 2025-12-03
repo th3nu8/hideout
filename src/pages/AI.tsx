@@ -908,7 +908,9 @@ const AI = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2 max-w-[180px]">
-                    <img src={selectedModel.logo} alt={selectedModel.name} className="w-4 h-4 object-contain flex-shrink-0" />
+                    {selectedModel.logo && (
+                      <img src={selectedModel.logo} alt={selectedModel.name} className="w-4 h-4 object-contain flex-shrink-0" />
+                    )}
                     <span className="truncate">{selectedModel.name}</span>
                     <ChevronDown className="w-3 h-3 flex-shrink-0" />
                   </Button>
@@ -921,7 +923,9 @@ const AI = () => {
                       className={`${selectedModel.id === model.id ? "bg-accent" : ""} justify-between`}
                     >
                       <div className="flex items-center gap-2">
-                        <img src={model.logo} alt={model.name} className="w-4 h-4 object-contain flex-shrink-0" />
+                        {model.logo && (
+                          <img src={model.logo} alt={model.name} className="w-4 h-4 object-contain flex-shrink-0" />
+                        )}
                         <span>{model.name}</span>
                       </div>
                       {model.supportsVision && (
