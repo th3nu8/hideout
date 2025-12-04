@@ -152,7 +152,11 @@ const Index = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="search-glow-wrapper">
+            <div className="relative">
+              {/* Animated glowing border line that travels around */}
+              <div className="search-border-glow-outer" />
+              <div className="search-border-glow" />
+              
               <Input 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
