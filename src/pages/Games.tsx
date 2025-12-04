@@ -477,16 +477,12 @@ const Games = () => {
     };
   }, [games, currentGame, sidebarGamesKey]);
 
-  // Refresh sidebar games every 60 seconds
+  // Update sidebar games only when switching to a new game
   useEffect(() => {
-    if (!currentGame) return;
-    
-    const interval = setInterval(() => {
+    if (currentGame) {
       setSidebarGamesKey(prev => prev + 1);
-    }, 60000);
-    
-    return () => clearInterval(interval);
-  }, [currentGame]);
+    }
+  }, [currentGame?.name, currentGame?.source]);
 
   // If a game is selected, show the game player
   if (currentGame) {
@@ -542,7 +538,7 @@ const Games = () => {
                   />
                 )}
                 <iframe
-                  key={currentGame.name + '-' + currentGame.source + '-' + sidebarGamesKey}
+                  key={currentGame.name + '-' + currentGame.source}
                   id="game-iframe"
                   className="w-full h-full"
                   title={currentGame.name}
