@@ -4,7 +4,6 @@ type AdConfig = {
   banner728x90: { key: string };
   banner160x600: { key: string };
   popunder: string;
-  socialBar: string;
 };
 
 const AD_CONFIGS: Record<string, AdConfig> = {
@@ -12,19 +11,16 @@ const AD_CONFIGS: Record<string, AdConfig> = {
     banner728x90: { key: '246b6621dfa0cd52945f0b078b6e0675' },
     banner160x600: { key: '3b803b456069ef6e76185ce466ec645b' },
     popunder: '//pl28198315.effectivegatecpm.com/b2/78/ef/b278efb8890fbdaafb94434cdab945bf.js',
-    socialBar: '//pl28198325.effectivegatecpm.com/10/09/af/1009af6830a75cb3a01abfe7e90d6a5d.js',
   },
   'usehideout.xyz': {
     banner728x90: { key: '246b6621dfa0cd52945f0b078b6e0675' },
     banner160x600: { key: '3b803b456069ef6e76185ce466ec645b' },
     popunder: '//pl28198315.effectivegatecpm.com/b2/78/ef/b278efb8890fbdaafb94434cdab945bf.js',
-    socialBar: '//pl28198325.effectivegatecpm.com/10/09/af/1009af6830a75cb3a01abfe7e90d6a5d.js',
   },
   'hideout-now.lovable.app': {
     banner728x90: { key: '86a81d9a2c2c68b2d58df6db627edf20' },
     banner160x600: { key: '2109f3d989be1842cff906ee5042285b' },
     popunder: '//pl28198337.effectivegatecpm.com/01/d5/f9/01d5f9812b8d1cc5feb5623b6c0e6087.js',
-    socialBar: '//pl28198344.effectivegatecpm.com/81/be/08/81be08761cb56f661f055429c4a52f35.js',
   },
 };
 
@@ -107,7 +103,7 @@ export const Banner160x600 = ({ className = '' }: { className?: string }) => {
   );
 };
 
-// Global ads loader (popunder + social bar)
+// Global ads loader (popunder only)
 export const GlobalAdsLoader = () => {
   const config = getAdConfig();
 
@@ -120,19 +116,10 @@ export const GlobalAdsLoader = () => {
     popunderScript.src = config.popunder;
     document.body.appendChild(popunderScript);
 
-    // Load social bar script
-    const socialBarScript = document.createElement('script');
-    socialBarScript.type = 'text/javascript';
-    socialBarScript.src = config.socialBar;
-    document.body.appendChild(socialBarScript);
-
     return () => {
       // Cleanup on unmount
       if (popunderScript.parentNode) {
         popunderScript.parentNode.removeChild(popunderScript);
-      }
-      if (socialBarScript.parentNode) {
-        socialBarScript.parentNode.removeChild(socialBarScript);
       }
     };
   }, [config]);

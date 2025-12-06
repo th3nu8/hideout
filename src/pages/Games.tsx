@@ -11,7 +11,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { GameLoader } from "@/components/GameLoader";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Banner728x90, Banner160x600, shouldShowAds } from "@/components/AdManager";
+import { Banner728x90, shouldShowAds } from "@/components/AdManager";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -496,10 +496,8 @@ const Games = () => {
         <Navigation />
         <main className="pt-24 px-4 sm:px-6 pb-12">
           <div className="flex gap-4 justify-center items-stretch">
-            {/* Left Side Panel */}
-            <div className="hidden lg:flex flex-col w-40 gap-2">
-              {/* Ad Banner */}
-              {shouldShowAds() && <Banner160x600 />}
+            {/* Left Side Panel - Game Recommendations */}
+            <div className="hidden lg:flex flex-col w-32 gap-2">
               <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-2 flex-1 flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
                 {leftPanelGames.map((game, index) => (
                   <button
@@ -575,12 +573,17 @@ const Games = () => {
                   {isFavorited ? 'Favorited' : 'Favorite'}
                 </Button>
               </div>
+
+              {/* Ad Banner Below Controls */}
+              {shouldShowAds() && (
+                <div className="w-full flex justify-center">
+                  <Banner728x90 />
+                </div>
+              )}
             </div>
 
-            {/* Right Side Panel */}
-            <div className="hidden lg:flex flex-col w-40 gap-2">
-              {/* Ad Banner */}
-              {shouldShowAds() && <Banner160x600 />}
+            {/* Right Side Panel - Game Recommendations */}
+            <div className="hidden lg:flex flex-col w-32 gap-2">
               <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/50 p-2 flex-1 flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
                 {rightPanelGames.map((game, index) => (
                   <button
@@ -598,13 +601,6 @@ const Games = () => {
               </div>
             </div>
           </div>
-
-          {/* Bottom Ad Banner */}
-          {shouldShowAds() && (
-            <div className="w-full flex justify-center mt-6">
-              <Banner728x90 />
-            </div>
-          )}
         </main>
       </div>
     );
