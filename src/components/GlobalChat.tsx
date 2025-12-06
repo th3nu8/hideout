@@ -23,7 +23,7 @@ export const GlobalChat = () => {
   const [isSettingUsername, setIsSettingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load username from localStorage
   useEffect(() => {
@@ -73,9 +73,7 @@ export const GlobalChat = () => {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSetUsername = () => {
@@ -131,8 +129,13 @@ export const GlobalChat = () => {
   };
 
   const formatTime = (dateString: string) => {
+    // Parse the UTC timestamp and convert to user's local timezone
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString(undefined, { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      hour12: true 
+    });
   };
 
   const getSourceBadge = (source: string) => {
@@ -206,7 +209,7 @@ export const GlobalChat = () => {
             </div>
           ) : (
             <>
-              <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+              <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   {messages.length === 0 ? (
                     <p className="text-center text-sm text-muted-foreground">
@@ -230,6 +233,7 @@ export const GlobalChat = () => {
                       </div>
                     ))
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
 
