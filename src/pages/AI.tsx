@@ -29,6 +29,7 @@ import moonshotLogo from "@/images/moonshotlogo.webp";
 
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { Banner728x90, shouldShowAds } from "@/components/AdManager";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -948,6 +949,13 @@ const AI = () => {
               </Button>
             </div>
           </div>
+          
+          {/* Ad Banner Below Input */}
+          {shouldShowAds() && messages.length === 0 && (
+            <div className="mt-6 flex justify-center">
+              <Banner728x90 />
+            </div>
+          )}
         </div>
       </div>
 
