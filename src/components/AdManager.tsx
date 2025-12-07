@@ -103,27 +103,8 @@ export const Banner160x600 = ({ className = '' }: { className?: string }) => {
   );
 };
 
-// Global ads loader (popunder only)
+// Global ads loader (disabled - no more popunder ads)
 export const GlobalAdsLoader = () => {
-  const config = getAdConfig();
-
-  useEffect(() => {
-    if (!config) return;
-
-    // Load popunder script
-    const popunderScript = document.createElement('script');
-    popunderScript.type = 'text/javascript';
-    popunderScript.src = config.popunder;
-    document.body.appendChild(popunderScript);
-
-    return () => {
-      // Cleanup on unmount
-      if (popunderScript.parentNode) {
-        popunderScript.parentNode.removeChild(popunderScript);
-      }
-    };
-  }, [config]);
-
   return null;
 };
 
