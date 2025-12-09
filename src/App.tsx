@@ -24,6 +24,7 @@ import { GridBackground } from "./components/GridBackground";
 import { BatteryWarning } from "./components/BatteryWarning";
 import { GlobalElements } from "./components/GlobalElements";
 import { GlobalAdsLoader } from "./components/AdManager";
+import WarningPopup from "./components/WarningPopup";
 
 type ThemesData = {
   site: string;
@@ -197,6 +198,7 @@ const App = () => {
         <GridBackground />
         <BatteryWarning />
         <GlobalAdsLoader />
+        <WarningPopup />
         <Toaster />
         <Sonner />
         <UpdateDialog />
