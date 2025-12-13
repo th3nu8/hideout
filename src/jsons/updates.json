@@ -1,5 +1,30 @@
 [
   {
+    "updateNumber": 6,
+    "version": "v1.1.1",
+    "updateDate": "2025-12-12",
+    "githubLink": "https://github.com/Hideout-Network/hideout/releases/tag/v1.1.1",
+    "bigText": "CHAT IS WORKING!!",
+    "changes": [
+      "✨ New glowing line that travels around the search bar continuously.",
+      "🌟 New glow effect that follows your cursor when hovering over the search bar on the home page.",
+      "🏷️ Moved the version tag to the right of the Hideout. text on the home page.",
+      "⭕ Made shortcuts circular.",
+      "🎯 Added hover animations to every clickable element.",
+      "📋 Added new enable/disable lists feature in the game sources dropdown on the games page.",
+      "💬 New chat UI with improved design.",
+      "📏 Made the chat window taller.",
+      "💭 Added new chat message UI with better styling.",
+      "↩️ Added new reply feature to chat messages.",
+      "🛡️ Added better safe chat with improved filters.",
+      "🔗 Changed the default shortcuts on the home page.",
+      "📝 New footer at the bottom right on the home page.",
+      "🔧 Fixed the browser engine icons in the search bar dropdown on the home page.",
+      "🔒 Added new cloak types: Blob & Data URL.",
+      "🚫 Added prevent tab closing feature in settings."
+    ]
+  },
+  {
     "updateNumber": 5,
     "version": "v1.1.0",
     "updateDate": "2025-12-03",
