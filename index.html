@@ -47,6 +47,40 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Function to remove the fixed div
+function removeFixedDiv() {
+  const divs = document.querySelectorAll('div[style*="position: fixed"][style*="bottom: 1rem"][style*="right: 1rem"][style*="z-index: 2147483647"]');
+  
+  divs.forEach(div => {
+    div.remove();
+  });
+}
+
+// Run immediately when script loads
+removeFixedDiv();
+
+// Run when DOM is fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', removeFixedDiv);
+} else {
+  removeFixedDiv();
+}
+
+// Use MutationObserver to watch for dynamically added elements
+const observer = new MutationObserver(() => {
+  removeFixedDiv();
+});
+
+// Start observing the document for changes
+observer.observe(document.body || document.documentElement, {
+  childList: true,
+  subtree: true
+});
+
+// Also check periodically (some elements may be added by scripts)
+setInterval(removeFixedDiv, 1000);
+    </script>
     <style>
       #lovable-badge {
         display: none !important;
