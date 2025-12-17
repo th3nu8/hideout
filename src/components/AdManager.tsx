@@ -14,6 +14,9 @@ const AD_CONFIGS: Record<string, AdConfig> = {
   'hideout-now.lovable.app': {
     socialBar: '//eventabsorbedrichard.com/81/be/08/81be08761cb56f661f055429c4a52f35.js',
   },
+  'hideout-now.lovable.app': {
+    socialBar: '//eventabsorbedrichard.com/58/c7/28/58c728d6a72c8f57778b9cac5f3d21c7.js',
+  },
 };
 
 const getAdConfig = (): AdConfig | null => {
