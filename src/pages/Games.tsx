@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const GAME_URLS = [
-  "https://cdn.jsdelivr.net/gh/gn-math/assets@main/zones.json",
-  "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json",
-  "https://raw.githubusercontent.com/gn-math/assets/main/zones.json"
+  "https://cdn.jsdelivr.net/gh/Hideout-Network/hideout-assets@main/games/data2.json",
+  "https://cdn.jsdelivr.net/gh/Hideout-Network/hideout-assets@latest/games/data2.json",
+  "https://raw.githubusercontent.com/Hideout-Network/hideout-assets/main/games/data2.json"
 ];
 const HIDEOUT_GAMES_URL = "https://hideout-network.github.io/hideout-assets/games/games.json";
 const HTML_URL = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
