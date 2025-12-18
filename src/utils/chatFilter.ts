@@ -1,37 +1,91 @@
-// Comprehensive chat filter for blocking bad words, bypass attempts, and similar messages
+// Comprehensive chat filter for blocking bad words, URLs, bypass attempts, and spam
 
-// List of severely inappropriate words
-// This list includes common bypass patterns
+// ============= URL/LINK DETECTION =============
+
+// Patterns to detect URLs and links
+const URL_PATTERNS: RegExp[] = [
+  // Standard URLs
+  /https?:\/\/[^\s]+/gi,
+  /www\.[^\s]+/gi,
+  // Domain patterns without protocol
+  /[a-zA-Z0-9][-a-zA-Z0-9]*\.(com|org|net|edu|gov|io|co|me|app|dev|xyz|info|biz|tv|cc|gg|ly|to|tk|ml|ga|cf|gq|ws|link|click|online|site|website|tech|store|shop|blog|page|space|live|stream|video|game|play|download|free|porn|xxx|sex|adult|casino|bet|win|money|crypto|bitcoin|nft|discord|telegram|whatsapp|tiktok|instagram|facebook|twitter|youtube|twitch|reddit|snapchat|onlyfans)\b/gi,
+  // IP addresses
+  /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/gi,
+  // Discord invites
+  /discord\.gg\/[^\s]+/gi,
+  /discord\.com\/invite\/[^\s]+/gi,
+  // Shortened URLs
+  /bit\.ly\/[^\s]+/gi,
+  /tinyurl\.com\/[^\s]+/gi,
+  /t\.co\/[^\s]+/gi,
+  /goo\.gl\/[^\s]+/gi,
+  /ow\.ly\/[^\s]+/gi,
+  /is\.gd\/[^\s]+/gi,
+  /buff\.ly\/[^\s]+/gi,
+  // Bypass attempts with spaces/special chars
+  /[a-zA-Z0-9]+[\s._\-]+(?:com|org|net|io|co|gg|ly|xyz)\b/gi,
+  // Obfuscated URLs (d0t, [dot], etc)
+  /[a-zA-Z0-9]+\s*[\[\(]?\s*(?:dot|d0t|\.)\s*[\]\)]?\s*(?:com|org|net|io|co|gg|ly|xyz)/gi,
+];
+
+// Check if message contains URLs or links
+export function containsLink(message: string): boolean {
+  const normalizedMessage = message.toLowerCase().replace(/\s+/g, '');
+  
+  for (const pattern of URL_PATTERNS) {
+    if (pattern.test(message) || pattern.test(normalizedMessage)) {
+      return true;
+    }
+  }
+  
+  // Check for obfuscated domains
+  const obfuscatedDomainPattern = /[a-zA-Z0-9]+\s*[\[\(\{]?\s*(?:dot|d0t|punkt|punto|\.)\s*[\]\)\}]?\s*[a-zA-Z]{2,}/gi;
+  if (obfuscatedDomainPattern.test(message)) {
+    return true;
+  }
+  
+  return false;
+}
+
+// ============= BAD WORD FILTERING =============
+
+// List of severely inappropriate words with bypass patterns
 const BLOCKED_PATTERNS: RegExp[] = [
-  // N-word and variations
-  /n[i!1|l][g9][g9][e3]r/gi,
-  /n[i!1|l][g9]{2}[a@4]/gi,
-  /n[i!1|l][g9][a@4]/gi,
-  /n[i!1|l]gg/gi,
-  /n[i!1|l][g9][g9]/gi,
-  /\|\|?[i!1|l][g9]/gi,
-  /n[\s._\-]*[i!1|l][\s._\-]*[g9][\s._\-]*[g9]/gi,
+  // N-word and variations (comprehensive)
+  /n[i!1|l\*][g9q][g9q][e3a@][r]/gi,
+  /n[i!1|l\*][g9q]{2}[a@4]/gi,
+  /n[i!1|l\*][g9q][a@4]/gi,
+  /n[i!1|l\*]gg/gi,
+  /n[i!1|l\*][g9q][g9q]/gi,
+  /\|\|?[i!1|l][g9q]/gi,
+  /n[\s._\-\*]*[i!1|l][\s._\-\*]*[g9q][\s._\-\*]*[g9q]/gi,
   /n[\W_]*i[\W_]*g[\W_]*g/gi,
-  /[n|\|/\\][i!1|l\|][g9][g9]/gi,
+  /[n|\|/\\][i!1|l\|][g9q][g9q]/gi,
+  /n[!i1][b6][b6][a@]/gi,
+  /negro/gi,
   
   // F-word and variations
-  /f[u\*@][c\(k]/gi,
+  /f[u\*@v][c\(k]/gi,
   /f[\s._\-]*u[\s._\-]*c[\s._\-]*k/gi,
   /fvck/gi,
   /f\*\*k/gi,
   /f\*ck/gi,
+  /f[*]?ck/gi,
   /fuk/gi,
   /fuc/gi,
+  /phuck/gi,
+  /phuk/gi,
   
   // S-word and variations
-  /sh[i!1][t\+]/gi,
+  /sh[i!1\*][t\+]/gi,
   /sh[\s._\-]*[i!1][\s._\-]*t/gi,
   /sh1t/gi,
   /5h1t/gi,
+  /5hit/gi,
   
   // Other slurs and offensive terms
-  /f[a@4][g9]{2}[o0]t/gi,
-  /f[a@4][g9]/gi,
+  /f[a@4][g9]{1,2}[o0]t/gi,
+  /f[a@4][g9]+/gi,
   /r[e3]t[a@4]rd/gi,
   /sp[i!1]c/gi,
   /ch[i!1]nk/gi,
@@ -40,16 +94,16 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /d[y!1]k[e3]/gi,
   /c[u\*][n\*]t/gi,
   /c[\s._\-]*u[\s._\-]*n[\s._\-]*t/gi,
-  /b[i!1]tch/gi,
+  /b[i!1\*]tch/gi,
   /wh[o0]r[e3]/gi,
   /sl[u\*]t/gi,
-  /a[s5][s5]h[o0]l[e3]/gi,
+  /a[s5\$][s5\$]h[o0]l[e3]/gi,
   
   // Racial slurs
   /w[e3]tb[a@4]ck/gi,
   /b[e3][a@4]n[e3]r/gi,
-  /g[o0][o0]k/gi,
-  /j[a@4]p/gi,
+  /g[o0]{2}k/gi,
+  /j[a@4]p\b/gi,
   /cr[a@4]ck[e3]r/gi,
   /p[a@4]k[i!1]/gi,
   /t[o0]w[e3]lh[e3][a@4]d/gi,
@@ -60,45 +114,62 @@ const BLOCKED_PATTERNS: RegExp[] = [
   
   // Sexual content
   /p[e3]n[i!1]s/gi,
-  /d[i!1]ck/gi,
+  /d[i!1\*]ck/gi,
   /c[o0]ck/gi,
   /p[u\*]ss[y!1]/gi,
   /v[a@4]g[i!1]n[a@4]/gi,
-  /b[o0]{2}b/gi,
-  /t[i!1]t[s5]/gi,
-  /cum/gi,
+  /b[o0]{2}b[s5]?/gi,
+  /t[i!1]t[s5]?/gi,
+  /cum\b/gi,
   /j[i!1]zz/gi,
   /p[o0]rn/gi,
-  /s[e3]x/gi,
+  /s[e3]x[y]?\b/gi,
+  /h[o0]rn[y!1]/gi,
+  /er[e3]ct/gi,
+  /org[a@4]sm/gi,
+  /mast[u]rbat/gi,
   
   // Death threats / violence
   /k[i!1]ll[\s]*y[o0]urs[e3]lf/gi,
-  /kys/gi,
+  /kys\b/gi,
   /d[i!1][e3][\s]*b[i!1]tch/gi,
   /g[o0][\s]*d[i!1][e3]/gi,
+  /k[i!1]ll[\s]*y[o0]u/gi,
+  /murder/gi,
+  /sui[c]ide/gi,
+  /hang[\s]*y[o0]urs[e3]lf/gi,
+  
+  // Hate symbols
+  /nazi/gi,
+  /h[i!1]tl[e3]r/gi,
+  /kkk/gi,
+  /wh[i!1]t[e3][\s]*p[o0]w[e3]r/gi,
+  /h[e3][i!1]l/gi,
+  /sw[a@4]st[i!1]k[a@4]/gi,
 ];
 
 // Additional exact match blocked words (lowercase)
 const BLOCKED_WORDS: Set<string> = new Set([
-  'nigger', 'nigga', 'nig', 'niger', 'n1gger', 'n1gga', 'nigg3r', 'n!gger',
-  'fuck', 'fucker', 'fucking', 'fucked', 'fck', 'fuk', 'fuq',
-  'shit', 'shitty', 'bullshit', 'sh1t', 'sh!t',
-  'ass', 'asshole', 'asswipe',
-  'bitch', 'bitches', 'b1tch',
-  'cunt', 'cunts',
-  'dick', 'dicks', 'dickhead',
+  'nigger', 'nigga', 'nig', 'niger', 'n1gger', 'n1gga', 'nigg3r', 'n!gger', 'nibba', 'negro',
+  'fuck', 'fucker', 'fucking', 'fucked', 'fck', 'fuk', 'fuq', 'motherfucker', 'motherfucking',
+  'shit', 'shitty', 'bullshit', 'sh1t', 'sh!t', 'shite',
+  'ass', 'asshole', 'asswipe', 'arse', 'arsehole',
+  'bitch', 'bitches', 'b1tch', 'biatch',
+  'cunt', 'cunts', 'c*nt',
+  'dick', 'dicks', 'dickhead', 'd1ck',
   'cock', 'cocks', 'cocksucker',
-  'pussy', 'pussies',
-  'whore', 'whores',
-  'slut', 'sluts',
-  'fag', 'faggot', 'fags', 'faggots',
-  'retard', 'retarded', 'retards',
-  'niglet', 'coon', 'spic', 'kike', 'chink', 'gook', 'wetback',
+  'pussy', 'pussies', 'puss', 'p*ssy',
+  'whore', 'whores', 'wh0re',
+  'slut', 'sluts', 'sl*t',
+  'fag', 'faggot', 'fags', 'faggots', 'f4g', 'f4ggot',
+  'retard', 'retarded', 'retards', 'ret4rd',
+  'niglet', 'coon', 'spic', 'kike', 'chink', 'gook', 'wetback', 'beaner', 'cracker',
   'tranny', 'trannie', 'dyke',
-  'porn', 'porno', 'pornography',
-  'penis', 'vagina', 'boobs', 'tits', 'cum', 'jizz',
-  'kys', 'kill yourself', 'go die',
-  'nazi', 'hitler', 'kkk', 'white power', 'heil',
+  'porn', 'porno', 'pornography', 'pr0n',
+  'penis', 'vagina', 'boobs', 'tits', 'cum', 'jizz', 'cock', 'dildo', 'vibrator',
+  'kys', 'kill yourself', 'go die', 'neck yourself',
+  'nazi', 'hitler', 'kkk', 'white power', 'heil', 'swastika',
+  'rape', 'rapist', 'molest', 'pedophile', 'pedo',
 ]);
 
 // Normalize text to detect bypass attempts
@@ -108,8 +179,8 @@ function normalizeText(text: string): string {
     .replace(/[0@]/g, 'o')
     .replace(/[1!|l]/g, 'i')
     .replace(/3/g, 'e')
-    .replace(/4@/g, 'a')
-    .replace(/5\$/g, 's')
+    .replace(/[4@]/g, 'a')
+    .replace(/[5\$]/g, 's')
     .replace(/7/g, 't')
     .replace(/8/g, 'b')
     .replace(/9/g, 'g')
@@ -122,6 +193,11 @@ function normalizeText(text: string): string {
 export function containsBlockedContent(message: string): { blocked: boolean; reason?: string } {
   const lowerMessage = message.toLowerCase();
   const normalizedMessage = normalizeText(message);
+  
+  // Check for links/URLs
+  if (containsLink(message)) {
+    return { blocked: true, reason: 'Links and URLs are not allowed in chat' };
+  }
   
   // Check exact word matches
   const words = lowerMessage.split(/\s+/);
@@ -164,8 +240,13 @@ export function isUsernameAppropriate(username: string): { valid: boolean; reaso
     return { valid: false, reason: 'Username must be 20 characters or less' };
   }
   
-  if (/^(admin|moderator|mod|staff|owner|system|bot)$/i.test(username)) {
+  if (/^(admin|moderator|mod|staff|owner|system|bot|official|support|help)$/i.test(username)) {
     return { valid: false, reason: 'Username cannot impersonate staff' };
+  }
+  
+  // Disallow usernames that are just numbers or special chars
+  if (/^[^a-zA-Z]+$/.test(username)) {
+    return { valid: false, reason: 'Username must contain at least one letter' };
   }
   
   return { valid: true };
@@ -209,12 +290,13 @@ export function isTooSimilar(newMessage: string, previousMessage: string, thresh
   return calculateSimilarity(newMessage, previousMessage) >= threshold;
 }
 
-// ============= LOCAL STORAGE BASED WARNINGS/TIMEOUTS =============
+// ============= LOCAL STORAGE BASED WARNINGS/TIMEOUTS (LEGACY) =============
 
 const STORAGE_KEYS = {
   WARNING_COUNT: 'hideout_chat_warning_count',
   TIMEOUT_UNTIL: 'hideout_chat_timeout_until',
   LAST_MESSAGE: 'hideout_chat_last_message',
+  LAST_MESSAGE_TIME: 'hideout_chat_last_message_time',
 };
 
 // Timeout durations in milliseconds (escalating)
@@ -346,9 +428,30 @@ export function getLastMessage(): string | null {
 export function setLastMessage(message: string): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_MESSAGE, message);
+    localStorage.setItem(STORAGE_KEYS.LAST_MESSAGE_TIME, Date.now().toString());
   } catch (e) {
     console.error('Failed to save last message:', e);
   }
+}
+
+// Get last message time
+export function getLastMessageTime(): number | null {
+  try {
+    const time = localStorage.getItem(STORAGE_KEYS.LAST_MESSAGE_TIME);
+    return time ? parseInt(time, 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Check for rapid message spam (rate limiting)
+export function isSpammingTooFast(): boolean {
+  const lastTime = getLastMessageTime();
+  if (!lastTime) return false;
+  
+  const timeSinceLastMessage = Date.now() - lastTime;
+  // Minimum 1 second between messages
+  return timeSinceLastMessage < 1000;
 }
 
 // Validate a message before sending (client-side)
@@ -372,7 +475,17 @@ export function validateMessage(message: string): ValidationResult {
     return { valid: false, error: 'Message cannot be empty.' };
   }
   
-  // Check bad words
+  // Check message length
+  if (message.length > 500) {
+    return { valid: false, error: 'Message is too long (max 500 characters).' };
+  }
+  
+  // Check rate limiting
+  if (isSpammingTooFast()) {
+    return { valid: false, error: 'You are sending messages too quickly. Please wait a moment.' };
+  }
+  
+  // Check bad words and links
   const blockedCheck = containsBlockedContent(message);
   if (blockedCheck.blocked) {
     const warningResult = addWarning();
