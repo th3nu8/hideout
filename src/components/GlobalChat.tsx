@@ -207,8 +207,8 @@ export const GlobalChat = () => {
       </Button>
 
       {isOpen && (
-        <div className="fixed bottom-20 left-4 w-[28rem] md:w-[32rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-6rem)] max-h-[600px] bg-background border border-border rounded-lg shadow-xl flex flex-col z-[9999]">
-          <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="fixed bottom-20 left-4 w-[350px] md:w-[400px] h-[500px] bg-background border border-border rounded-lg shadow-xl flex flex-col z-[9999] overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             <h3 className="font-semibold">Global Chat</h3>
             <Button
               variant="ghost"
@@ -256,8 +256,8 @@ export const GlobalChat = () => {
             </div>
           ) : (
             <>
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
+              <ScrollArea className="flex-1 min-h-0 overflow-hidden">
+                <div className="space-y-3 p-4">
                   {messages.length === 0 ? (
                     <p className="text-center text-sm text-muted-foreground">
                       No messages yet. Be the first to say something!
@@ -326,7 +326,7 @@ export const GlobalChat = () => {
                 </div>
               </ScrollArea>
 
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border flex-shrink-0">
                 {/* Reply indicator */}
                 {replyingTo && (
                   <div className="flex items-center justify-between mb-2 px-2 py-1.5 bg-muted rounded-lg text-sm">
